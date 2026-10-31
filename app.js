@@ -1,16 +1,15 @@
 /**
- * ShortsStream — YouTube Shorts Player
- * Configured with BLVCKTORQUE (UCc3WaSgyMJ4q1orDuTla1BA) live sync support
+ * ShortsMatrix — Multi-Stream YouTube Shorts Wall
+ * Supports 1 to 24 simultaneous random players
  */
 
 const DEFAULT_CHANNEL_ID = 'UCc3WaSgyMJ4q1orDuTla1BA';
 const DEFAULT_CHANNEL_NAME = 'BLVCKTORQUE';
 
-// Curated Channel Presets (Includes full BLVCKTORQUE library for instant zero-latency start)
-const PRESET_CHANNELS = {
+// Channel Shorts Library (Pre-populated with real working shorts)
+const CHANNEL_POOLS = {
   [DEFAULT_CHANNEL_ID]: {
     name: 'BLVCKTORQUE',
-    channelId: DEFAULT_CHANNEL_ID,
     shorts: [
       { id: '0X9pWHijTCw', title: 'Red Bull Athletes In GTA 5 Be Like... 🪂🔥 Extreme Stunts Compilation' },
       { id: 'f9gk9xUtos8', title: 'Top Gun\'s "Best" Pilot Crashes In GTA 5! ✈️💀 Epic Fighter Jet Fail' },
@@ -68,551 +67,349 @@ const PRESET_CHANNELS = {
   }
 };
 
-// Application State
+// State
 const state = {
   currentChannel: DEFAULT_CHANNEL_NAME,
   currentChannelId: DEFAULT_CHANNEL_ID,
-  shortsQueue: [],
-  currentIndex: 0,
-  isPlaying: false,
-  isMuted: false,
-  autoAdvance: true,
-  loopCurrent: false,
-  autoSync: true,
-  ytPlayer: null,
-  isPlayerReady: false,
-  apiKey: localStorage.getItem('yt_shorts_api_key') || ''
+  shortsPool: [...CHANNEL_POOLS[DEFAULT_CHANNEL_ID].shorts],
+  playerCount: 4,
+  activeAudioCardIndex: null, // Index of card with sound unmuted
+  activeCards: [] // Array of { id, video, isMuted }
 };
 
-// DOM Elements
+// DOM
 const elements = {
   brandHome: document.getElementById('brand-home'),
   channelForm: document.getElementById('channel-form'),
   channelInput: document.getElementById('channel-input'),
-  loadBtn: document.getElementById('load-btn'),
+  gridToggleGroup: document.getElementById('grid-toggle-group'),
+  gridPills: document.querySelectorAll('.grid-pill'),
+  shortsMatrix: document.getElementById('shorts-matrix'),
+  randomizeAllBtn: document.getElementById('randomize-all-btn'),
   syncBtn: document.getElementById('sync-btn'),
-  syncQueueBtn: document.getElementById('sync-queue-btn'),
-  shortsCard: document.getElementById('shorts-card'),
-  playerLoader: document.getElementById('player-loader'),
-  loaderStatus: document.getElementById('loader-status'),
-  channelName: document.getElementById('current-channel-name'),
-  channelAvatar: document.getElementById('channel-avatar-icon'),
-  videoTitle: document.getElementById('current-video-title'),
-  counterPill: document.getElementById('counter-pill'),
-  ytExternalLink: document.getElementById('yt-external-link'),
-  prevBtn: document.getElementById('prev-btn'),
-  nextBtn: document.getElementById('next-btn'),
-  playPauseBtn: document.getElementById('play-pause-btn'),
-  playIcon: document.getElementById('play-icon'),
-  pauseIcon: document.getElementById('pause-icon'),
-  muteBtn: document.getElementById('mute-btn'),
-  volumeIcon: document.getElementById('volume-icon'),
-  mutedIcon: document.getElementById('muted-icon'),
-  copyBtn: document.getElementById('copy-btn'),
-  toggleQueueBtn: document.getElementById('toggle-queue-btn'),
-  closeQueueBtn: document.getElementById('close-queue-btn'),
-  queueDrawer: document.getElementById('queue-drawer'),
-  queueList: document.getElementById('queue-list'),
-  queueCount: document.getElementById('queue-count'),
-  queueHeaderTitle: document.getElementById('queue-header-title'),
-  shuffleBtn: document.getElementById('shuffle-btn'),
-  clearQueueBtn: document.getElementById('clear-queue-btn'),
+  audioInfoBtn: document.getElementById('audio-info-btn'),
   presetChips: document.querySelectorAll('.chip'),
-  settingsBtn: document.getElementById('settings-btn'),
-  settingsModal: document.getElementById('settings-modal'),
-  closeSettingsBtn: document.getElementById('close-settings-btn'),
-  autoAdvanceToggle: document.getElementById('auto-advance-toggle'),
-  loopToggle: document.getElementById('loop-toggle'),
-  autoSyncToggle: document.getElementById('auto-sync-toggle'),
-  apiKeyInput: document.getElementById('yt-api-key'),
-  saveApiKeyBtn: document.getElementById('save-api-key-btn'),
+  activeChannelName: document.getElementById('active-channel-name'),
+  poolCount: document.getElementById('pool-count'),
   toast: document.getElementById('toast')
 };
 
-// Initialize YouTube Iframe API Callback
-window.onYouTubeIframeAPIReady = function() {
-  initPlayer();
-};
-
-function initPlayer() {
-  state.ytPlayer = new YT.Player('yt-player', {
-    height: '100%',
-    width: '100%',
-    videoId: '',
-    playerVars: {
-      autoplay: 1,
-      controls: 0,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-      fs: 0,
-      playsinline: 1,
-      iv_load_policy: 3,
-      disablekb: 1,
-      origin: window.location.origin || 'http://localhost'
-    },
-    events: {
-      onReady: onPlayerReady,
-      onStateChange: onPlayerStateChange,
-      onError: onPlayerError
-    }
-  });
+// Build Embed URL (with autoplay, loop, mute, and playsinline for 100% browser compatibility)
+function createEmbedUrl(videoId, isMuted = true) {
+  const muteParam = isMuted ? 1 : 0;
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muteParam}&loop=1&playlist=${videoId}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1`;
 }
 
-function onPlayerReady(event) {
-  state.isPlayerReady = true;
-  // Load BLVCKTORQUE channel by default
-  loadDefaultChannel();
-}
-
-function onPlayerStateChange(event) {
-  if (event.data === YT.PlayerState.PLAYING) {
-    state.isPlaying = true;
-    updatePlayPauseUI();
-    hideLoader();
-  } else if (event.data === YT.PlayerState.PAUSED) {
-    state.isPlaying = false;
-    updatePlayPauseUI();
-  } else if (event.data === YT.PlayerState.ENDED) {
-    if (state.loopCurrent) {
-      state.ytPlayer.seekTo(0);
-      state.ytPlayer.playVideo();
-    } else if (state.autoAdvance) {
-      playNext();
-    } else {
-      state.isPlaying = false;
-      updatePlayPauseUI();
-    }
+// Generate Random Selection from Pool
+function getRandomShort(excludeId = null) {
+  if (!state.shortsPool.length) {
+    return { id: '0X9pWHijTCw', title: 'YouTube Short' };
   }
+  const filtered = state.shortsPool.filter(s => s.id !== excludeId);
+  const source = filtered.length > 0 ? filtered : state.shortsPool;
+  return source[Math.floor(Math.random() * source.length)];
 }
 
-function onPlayerError(event) {
-  console.warn('YouTube Player Error:', event.data);
-  showToast('Short playback issue. Skipping to next...');
-  setTimeout(() => {
-    if (state.shortsQueue.length > 1) {
-      playNext();
-    }
-  }, 1000);
-}
+// Render the Matrix
+function renderMatrix() {
+  elements.shortsMatrix.className = `shorts-matrix grid-${state.playerCount}`;
+  elements.shortsMatrix.innerHTML = '';
+  state.activeCards = [];
 
-// Playback Logic
-function playVideoAtIndex(index) {
-  if (!state.shortsQueue.length) return;
-  if (index < 0) index = 0;
-  if (index >= state.shortsQueue.length) index = state.shortsQueue.length - 1;
+  // Shuffle pool to spread unique videos across the slots
+  const shuffledPool = [...state.shortsPool].sort(() => 0.5 - Math.random());
 
-  state.currentIndex = index;
-  const currentShort = state.shortsQueue[index];
+  for (let i = 0; i < state.playerCount; i++) {
+    // Pick video from shuffled pool, or wrap around if playerCount > pool length
+    const video = shuffledPool[i % shuffledPool.length] || getRandomShort();
+    const isMuted = state.activeAudioCardIndex !== i;
 
-  showLoader(`Loading ${index + 1} of ${state.shortsQueue.length}...`);
-
-  // Update UI Elements
-  elements.videoTitle.textContent = currentShort.title || 'YouTube Short';
-  elements.channelName.textContent = currentShort.channel || state.currentChannel;
-  elements.channelAvatar.textContent = (currentShort.channel || state.currentChannel).charAt(0).toUpperCase();
-  elements.counterPill.textContent = `${index + 1} / ${state.shortsQueue.length}`;
-  elements.ytExternalLink.href = `https://www.youtube.com/shorts/${currentShort.id}`;
-
-  if (state.isPlayerReady && state.ytPlayer && state.ytPlayer.loadVideoById) {
-    state.ytPlayer.loadVideoById({
-      videoId: currentShort.id,
-      startSeconds: 0
+    state.activeCards.push({
+      index: i,
+      video: video,
+      isMuted: isMuted
     });
-    if (state.isMuted) {
-      state.ytPlayer.mute();
-    } else {
-      state.ytPlayer.unMute();
-    }
+
+    const card = createCardElement(i, video, isMuted);
+    elements.shortsMatrix.appendChild(card);
   }
 
-  updateQueueActiveItem();
-  updatePlayPauseUI();
+  updateHeaderStats();
 }
 
-function playNext() {
-  if (state.currentIndex < state.shortsQueue.length - 1) {
-    playVideoAtIndex(state.currentIndex + 1);
-  } else {
-    // Loop back to beginning
-    playVideoAtIndex(0);
-    showToast('Replaying from beginning');
-  }
-}
+// Create a Single Player Card
+function createCardElement(index, video, isMuted) {
+  const card = document.createElement('div');
+  card.className = `player-card ${!isMuted ? 'has-sound' : ''}`;
+  card.id = `player-card-${index}`;
 
-function playPrev() {
-  if (state.currentIndex > 0) {
-    playVideoAtIndex(state.currentIndex - 1);
-  } else {
-    showToast('Already at first short');
-  }
-}
+  const embedUrl = createEmbedUrl(video.id, isMuted);
 
-function togglePlayPause() {
-  if (!state.isPlayerReady || !state.ytPlayer) return;
-
-  if (state.isPlaying) {
-    state.ytPlayer.pauseVideo();
-  } else {
-    state.ytPlayer.playVideo();
-  }
-}
-
-function toggleMute() {
-  if (!state.isPlayerReady || !state.ytPlayer) return;
-  
-  if (state.isMuted) {
-    state.ytPlayer.unMute();
-    state.isMuted = false;
-    elements.volumeIcon.classList.remove('hidden');
-    elements.mutedIcon.classList.add('hidden');
-    showToast('Unmuted');
-  } else {
-    state.ytPlayer.mute();
-    state.isMuted = true;
-    elements.volumeIcon.classList.add('hidden');
-    elements.mutedIcon.classList.remove('hidden');
-    showToast('Muted');
-  }
-}
-
-function updatePlayPauseUI() {
-  if (state.isPlaying) {
-    elements.playIcon.classList.add('hidden');
-    elements.pauseIcon.classList.remove('hidden');
-  } else {
-    elements.playIcon.classList.remove('hidden');
-    elements.pauseIcon.classList.add('hidden');
-  }
-}
-
-function showLoader(text = 'Loading...') {
-  elements.loaderStatus.textContent = text;
-  elements.playerLoader.classList.remove('hidden');
-}
-
-function hideLoader() {
-  elements.playerLoader.classList.add('hidden');
-}
-
-// Queue Rendering
-function renderQueue() {
-  elements.queueList.innerHTML = '';
-  elements.queueCount.textContent = state.shortsQueue.length;
-  elements.queueHeaderTitle.textContent = `${state.currentChannel} Shorts`;
-
-  state.shortsQueue.forEach((short, idx) => {
-    const item = document.createElement('div');
-    item.className = `queue-item ${idx === state.currentIndex ? 'active' : ''}`;
-    item.dataset.index = idx;
-    
-    const thumbUrl = `https://i.ytimg.com/vi/${short.id}/hqdefault.jpg`;
-
-    item.innerHTML = `
-      <img src="${thumbUrl}" class="queue-thumb" alt="thumbnail" loading="lazy">
-      <div class="queue-meta">
-        <h4 class="queue-item-title">${escapeHTML(short.title || 'YouTube Short')}</h4>
-        <span class="queue-item-channel">${escapeHTML(short.channel || state.currentChannel)}</span>
+  card.innerHTML = `
+    <div class="card-overlay-top">
+      <span class="player-badge">#${index + 1}</span>
+      <div class="card-btn-group">
+        <button class="card-action-btn sound-btn ${!isMuted ? 'sound-active' : ''}" title="${isMuted ? 'Unmute this video' : 'Mute'}">
+          ${isMuted ? getMuteIcon() : getVolumeIcon()}
+        </button>
+        <button class="card-action-btn re-roll-btn" title="Play another random short">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
+          </svg>
+        </button>
+        <a href="https://www.youtube.com/shorts/${video.id}" target="_blank" class="card-action-btn" title="Open in YouTube">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
       </div>
-    `;
+    </div>
+    <iframe 
+      id="iframe-${index}"
+      src="${embedUrl}" 
+      title="${escapeHTML(video.title || 'YouTube Short')}"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+      allowfullscreen
+      loading="lazy">
+    </iframe>
+    <div class="card-overlay-bottom">
+      <p class="card-video-title">${escapeHTML(video.title || 'YouTube Short')}</p>
+    </div>
+  `;
 
-    item.addEventListener('click', () => {
-      playVideoAtIndex(idx);
-    });
-
-    elements.queueList.appendChild(item);
+  // Sound Button Click
+  const soundBtn = card.querySelector('.sound-btn');
+  soundBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAudioOnCard(index);
   });
+
+  // Re-roll Single Card
+  const reRollBtn = card.querySelector('.re-roll-btn');
+  reRollBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    reRollCard(index);
+  });
+
+  // Click card to unmute & focus
+  card.addEventListener('click', () => {
+    toggleAudioOnCard(index);
+  });
+
+  return card;
 }
 
-function updateQueueActiveItem() {
-  const items = elements.queueList.querySelectorAll('.queue-item');
-  items.forEach((item, idx) => {
-    if (idx === state.currentIndex) {
-      item.classList.add('active');
-      item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else {
-      item.classList.remove('active');
+// Re-roll a Single Card with another random short
+function reRollCard(index) {
+  const cardData = state.activeCards[index];
+  if (!cardData) return;
+
+  const currentId = cardData.video.id;
+  const newVideo = getRandomShort(currentId);
+  cardData.video = newVideo;
+
+  const cardElement = document.getElementById(`player-card-${index}`);
+  if (cardElement) {
+    const iframe = cardElement.querySelector('iframe');
+    const title = cardElement.querySelector('.card-video-title');
+    const openLink = cardElement.querySelector('a.card-action-btn');
+
+    iframe.src = createEmbedUrl(newVideo.id, cardData.isMuted);
+    title.textContent = newVideo.title || 'YouTube Short';
+    openLink.href = `https://www.youtube.com/shorts/${newVideo.id}`;
+
+    showToast(`Swapped #${index + 1} to: ${newVideo.title}`);
+  }
+}
+
+// Toggle Audio for a Specific Card (Only one card has audio at a time)
+function toggleAudioOnCard(targetIndex) {
+  if (state.activeAudioCardIndex === targetIndex) {
+    // Already unmuted -> mute it
+    state.activeAudioCardIndex = null;
+    showToast(`Muted #${targetIndex + 1}`);
+  } else {
+    // Unmute target, mute previous
+    state.activeAudioCardIndex = targetIndex;
+    showToast(`🔊 Audio active on player #${targetIndex + 1}`);
+  }
+
+  // Update all cards iframe src and button styling
+  state.activeCards.forEach((cardData, idx) => {
+    const isNowMuted = state.activeAudioCardIndex !== idx;
+    const cardEl = document.getElementById(`player-card-${idx}`);
+    if (!cardEl) return;
+
+    if (cardData.isMuted !== isNowMuted) {
+      cardData.isMuted = isNowMuted;
+      const iframe = cardEl.querySelector('iframe');
+      iframe.src = createEmbedUrl(cardData.video.id, isNowMuted);
+
+      const soundBtn = cardEl.querySelector('.sound-btn');
+      if (isNowMuted) {
+        cardEl.classList.remove('has-sound');
+        soundBtn.classList.remove('sound-active');
+        soundBtn.innerHTML = getMuteIcon();
+      } else {
+        cardEl.classList.add('has-sound');
+        soundBtn.classList.add('sound-active');
+        soundBtn.innerHTML = getVolumeIcon();
+      }
     }
   });
 }
 
-// Default Channel Loader (BLVCKTORQUE)
-function loadDefaultChannel() {
-  state.currentChannel = DEFAULT_CHANNEL_NAME;
-  state.currentChannelId = DEFAULT_CHANNEL_ID;
+// Randomize All Cards Simultaneously
+function randomizeAll() {
+  state.activeAudioCardIndex = null;
+  renderMatrix();
+  showToast(`🎲 Shuffled all ${state.playerCount} players!`);
+}
 
-  // 1. Instantly populate pre-cached shorts for zero waiting time
-  const preset = PRESET_CHANNELS[DEFAULT_CHANNEL_ID];
-  state.shortsQueue = preset.shorts.map(s => ({ ...s, channel: DEFAULT_CHANNEL_NAME }));
-  
+// Switch Grid Count (1, 4, 8, 12, 16, 24)
+function setPlayerCount(count) {
+  state.playerCount = count;
+  elements.gridPills.forEach(pill => {
+    if (parseInt(pill.dataset.count, 10) === count) {
+      pill.classList.add('active');
+    } else {
+      pill.classList.remove('active');
+    }
+  });
+  renderMatrix();
+}
+
+// Channel Loading
+function loadChannel(channelKey) {
+  const pool = CHANNEL_POOLS[channelKey];
+  if (!pool) return;
+
+  state.currentChannel = pool.name;
+  state.currentChannelId = channelKey;
+  state.shortsPool = [...pool.shorts];
+
   elements.presetChips.forEach(chip => {
-    if (chip.dataset.channel === DEFAULT_CHANNEL_ID) {
+    if (chip.dataset.channel === channelKey) {
       chip.classList.add('active');
     } else {
       chip.classList.remove('active');
     }
   });
 
-  renderQueue();
-  playVideoAtIndex(0);
+  renderMatrix();
+  showToast(`Loaded ${pool.name} (${state.shortsPool.length} shorts)`);
 
-  // 2. Fetch live RSS feed to check for any new uploads published in the future
-  syncChannelFeed(DEFAULT_CHANNEL_ID, true);
+  // Sync latest RSS feed if it's a channel ID
+  if (channelKey.startsWith('UC')) {
+    syncLiveFeed(channelKey);
+  }
 }
 
-// Live Channel Feed Sync (Fetches new uploads dynamically)
-async function syncChannelFeed(channelId, isSilent = false) {
-  if (!channelId) channelId = state.currentChannelId || DEFAULT_CHANNEL_ID;
-
+// Live Feed Sync (Pulls latest/future uploads from YouTube RSS)
+async function syncLiveFeed(channelId = DEFAULT_CHANNEL_ID) {
   elements.syncBtn.classList.add('spinning');
-  if (!isSilent) showToast('Syncing latest uploads from YouTube...');
-
   try {
-    let newItems = [];
-
-    // Attempt 1: Fetch through rss2json
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&_t=${Date.now()}`;
-    
-    try {
-      const res = await fetch(apiUrl);
-      const data = await res.json();
-      if (data.status === 'ok' && data.items && data.items.length) {
-        newItems = data.items.map(item => {
-          const videoId = extractVideoId(item.link) || (item.guid ? item.guid.replace('yt:video:', '') : '');
-          return {
-            id: videoId,
-            title: item.title,
-            channel: data.feed ? data.feed.title || state.currentChannel : state.currentChannel
-          };
-        }).filter(item => item.id);
-      }
-    } catch (e) {
-      console.warn('rss2json failed, trying allorigins fallback:', e);
-    }
+    const res = await fetch(apiUrl);
+    const data = await res.json();
 
-    // Attempt 2: Allorigins fallback if rss2json had issues
-    if (!newItems.length) {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-      const res = await fetch(proxyUrl);
-      const data = await res.json();
-      if (data.contents) {
-        const matches = [...data.contents.matchAll(/<yt:videoId>(.*?)<\/yt:videoId>[\s\S]*?<title>(.*?)<\/title>/g)];
-        newItems = matches.map(m => ({
-          id: m[1],
-          title: decodeHTMLEntities(m[2]),
-          channel: state.currentChannel
-        }));
-      }
-    }
+    if (data.status === 'ok' && data.items && data.items.length) {
+      const newItems = data.items.map(item => ({
+        id: (item.guid || '').replace('yt:video:', '') || extractVideoId(item.link),
+        title: item.title
+      })).filter(i => i.id);
 
-    // Merge new items with current queue, placing newest on top without duplicates
-    if (newItems.length > 0) {
-      const existingIds = new Set(state.shortsQueue.map(s => s.id));
-      const freshUploads = newItems.filter(item => !existingIds.has(item.id));
-
-      if (freshUploads.length > 0) {
-        state.shortsQueue = [...freshUploads, ...state.shortsQueue];
-        renderQueue();
-        showToast(`✨ Found ${freshUploads.length} new short(s) uploaded!`);
-      } else if (!isSilent) {
-        showToast('Feed is already up to date!');
+      if (newItems.length > 0) {
+        const existingIds = new Set(state.shortsPool.map(s => s.id));
+        const fresh = newItems.filter(i => !existingIds.has(i.id));
+        if (fresh.length > 0) {
+          state.shortsPool = [...fresh, ...state.shortsPool];
+          updateHeaderStats();
+          showToast(`✨ Added ${fresh.length} new short(s) from channel!`);
+        }
       }
     }
   } catch (err) {
-    console.error('Sync failed:', err);
-    if (!isSilent) showToast('Sync completed (cached queue ready)');
+    console.warn('Live sync fallback used');
   } finally {
     elements.syncBtn.classList.remove('spinning');
   }
 }
 
-// Input parsing (Channel URL, Studio URL, Handle, or Short link)
-async function handleChannelInput(inputStr) {
+// Input Parser
+function handleInput(inputStr) {
   inputStr = inputStr.trim();
   if (!inputStr) return;
 
-  showLoader('Resolving channel & shorts...');
-
-  // 1. Direct Short or Watch URL / Video ID
-  const directVideoId = extractVideoId(inputStr);
-  if (directVideoId && !inputStr.includes('/channel/') && !inputStr.includes('studio.youtube.com')) {
-    const customShort = {
-      id: directVideoId,
-      title: 'Direct Short / Video',
-      channel: 'Custom Video'
-    };
-    state.shortsQueue = [customShort, ...state.shortsQueue];
-    renderQueue();
-    playVideoAtIndex(0);
-    showToast('Short added to queue!');
-    return;
-  }
-
-  // 2. Extract Channel ID if it's studio.youtube.com/channel/UC... or youtube.com/channel/UC...
+  // Extract channel ID if studio or youtube link
   const channelIdMatch = inputStr.match(/(UC[a-zA-Z0-9_-]{22})/);
   if (channelIdMatch) {
-    const channelId = channelIdMatch[1];
-    state.currentChannelId = channelId;
-    if (channelId === DEFAULT_CHANNEL_ID) {
-      loadDefaultChannel();
+    const id = channelIdMatch[1];
+    if (id === DEFAULT_CHANNEL_ID) {
+      loadChannel(DEFAULT_CHANNEL_ID);
     } else {
-      state.currentChannel = 'YouTube Channel';
-      state.shortsQueue = [];
-      renderQueue();
-      await syncChannelFeed(channelId, false);
-      if (state.shortsQueue.length > 0) {
-        playVideoAtIndex(0);
-      }
+      state.currentChannel = 'Custom Channel';
+      state.currentChannelId = id;
+      syncLiveFeed(id).then(() => renderMatrix());
     }
     return;
   }
 
-  // 3. Normalize @handle or channel name
-  let cleanHandle = inputStr;
-  const handleMatch = inputStr.match(/(?:youtube\.com\/|@)(@?[\w.-]+)/i);
-  if (handleMatch) {
-    cleanHandle = handleMatch[1].startsWith('@') ? handleMatch[1] : '@' + handleMatch[1];
-  } else if (!cleanHandle.startsWith('@') && !cleanHandle.includes('/')) {
-    cleanHandle = '@' + cleanHandle;
-  }
-
-  // Check preset channels
-  const presetKey = Object.keys(PRESET_CHANNELS).find(
-    k => k.toLowerCase() === cleanHandle.toLowerCase()
-  );
-
-  if (presetKey) {
-    loadPresetChannel(presetKey);
+  // Handle preset channels
+  const match = Object.keys(CHANNEL_POOLS).find(k => k.toLowerCase() === inputStr.toLowerCase());
+  if (match) {
+    loadChannel(match);
     return;
   }
 
-  // API Key fetch if available
-  if (state.apiKey) {
-    const fetched = await fetchViaYouTubeAPI(cleanHandle);
-    if (fetched) return;
-  }
-
-  // Fallback RSS scraper
-  const rssFetched = await fetchViaPublicRSS(cleanHandle);
-  if (rssFetched) return;
-
-  hideLoader();
-  showToast(`Could not load ${cleanHandle}. Try pasting channel ID or a short link!`);
-}
-
-function loadPresetChannel(handleKey) {
-  const preset = PRESET_CHANNELS[handleKey];
-  if (!preset) return;
-
-  state.currentChannel = preset.name;
-  state.currentChannelId = preset.channelId || null;
-  state.shortsQueue = preset.shorts.map(s => ({ ...s, channel: preset.name }));
-
-  elements.presetChips.forEach(chip => {
-    if (chip.dataset.channel.toLowerCase() === handleKey.toLowerCase()) {
-      chip.classList.add('active');
-    } else {
-      chip.classList.remove('active');
-    }
-  });
-
-  renderQueue();
-  playVideoAtIndex(0);
-
-  if (preset.channelId) {
-    syncChannelFeed(preset.channelId, true);
+  // Direct video/short ID
+  const directId = extractVideoId(inputStr);
+  if (directId) {
+    state.shortsPool.unshift({ id: directId, title: 'Custom Short' });
+    renderMatrix();
+    showToast('Added custom short to stream!');
   }
 }
 
-// Fetch YouTube Data API v3 (Optional)
-async function fetchViaYouTubeAPI(handleOrId) {
-  try {
-    showLoader('Querying YouTube API...');
-    const searchChannelUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(handleOrId)}&type=channel&key=${state.apiKey}`;
-    const channelRes = await fetch(searchChannelUrl);
-    const channelData = await channelRes.json();
-
-    if (!channelData.items || !channelData.items.length) return false;
-
-    const channelId = channelData.items[0].id.channelId;
-    const channelTitle = channelData.items[0].snippet.title;
-
-    const videosUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&videoDuration=short&order=date&maxResults=25&key=${state.apiKey}`;
-    const videosRes = await fetch(videosUrl);
-    const videosData = await videosRes.json();
-
-    if (videosData.items && videosData.items.length) {
-      state.currentChannel = channelTitle;
-      state.currentChannelId = channelId;
-      state.shortsQueue = videosData.items.map(item => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        channel: channelTitle
-      }));
-      renderQueue();
-      playVideoAtIndex(0);
-      showToast(`Loaded ${state.shortsQueue.length} shorts from ${channelTitle}`);
-      return true;
-    }
-  } catch (err) {
-    console.error('YouTube API error:', err);
-  }
-  return false;
-}
-
-// Fallback HTML Scraper via proxy
-async function fetchViaPublicRSS(handleOrId) {
-  try {
-    showLoader('Discovering channel feed...');
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.youtube.com/${handleOrId}/shorts`)}`;
-    const res = await fetch(proxyUrl);
-    const data = await res.json();
-
-    if (data.contents) {
-      const matches = [...data.contents.matchAll(/\/shorts\/([a-zA-Z0-9_-]{11})/g)];
-      const uniqueIds = Array.from(new Set(matches.map(m => m[1])));
-
-      if (uniqueIds.length > 0) {
-        state.currentChannel = handleOrId;
-        state.shortsQueue = uniqueIds.slice(0, 20).map((id, i) => ({
-          id: id,
-          title: `Short #${i + 1}`,
-          channel: handleOrId
-        }));
-        renderQueue();
-        playVideoAtIndex(0);
-        showToast(`Loaded ${state.shortsQueue.length} shorts for ${handleOrId}`);
-        return true;
-      }
-    }
-  } catch (e) {
-    console.warn('Public RSS fallback failed:', e);
-  }
-  return false;
+function updateHeaderStats() {
+  elements.activeChannelName.textContent = state.currentChannel;
+  elements.poolCount.textContent = `${state.shortsPool.length} Shorts in library`;
 }
 
 function extractVideoId(url) {
   if (!url) return null;
-  const shortsRegex = /\/shorts\/([a-zA-Z0-9_-]{11})/;
-  const watchRegex = /[?&]v=([a-zA-Z0-9_-]{11})/;
-  const shareRegex = /youtu\.be\/([a-zA-Z0-9_-]{11})/;
-  const rawIdRegex = /^[a-zA-Z0-9_-]{11}$/;
-
-  let m = url.match(shortsRegex) || url.match(watchRegex) || url.match(shareRegex);
+  const m = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/) || 
+            url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) || 
+            url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
   if (m) return m[1];
-  if (rawIdRegex.test(url)) return url;
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
   return null;
 }
 
-function decodeHTMLEntities(text) {
-  const el = document.createElement('textarea');
-  el.innerHTML = text;
-  return el.value;
+function getVolumeIcon() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+  </svg>`;
+}
+
+function getMuteIcon() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <line x1="23" y1="9" x2="17" y2="15"></line>
+    <line x1="17" y1="9" x2="23" y2="15"></line>
+  </svg>`;
 }
 
 function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, 
+  return (str || '').replace(/[&<>'"]/g, 
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
@@ -623,201 +420,60 @@ function showToast(msg) {
   clearTimeout(elements.toastTimeout);
   elements.toastTimeout = setTimeout(() => {
     elements.toast.classList.add('hidden');
-  }, 2400);
+  }, 2200);
 }
 
 // Event Listeners
-function setupEventListeners() {
-  // Brand Home click -> Reset to BLVCKTORQUE
+function setupEvents() {
+  // Brand Click -> Reset to BLVCKTORQUE
   elements.brandHome.addEventListener('click', () => {
-    loadDefaultChannel();
-    showToast('Loaded BLVCKTORQUE');
+    loadChannel(DEFAULT_CHANNEL_ID);
   });
 
-  // Channel Form Submit
+  // Channel Form
   elements.channelForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    handleChannelInput(elements.channelInput.value);
+    handleInput(elements.channelInput.value);
   });
 
-  // Manual Sync Button
-  elements.syncBtn.addEventListener('click', () => {
-    syncChannelFeed(state.currentChannelId, false);
+  // Grid Pills (1, 4, 8, 12, 16, 24)
+  elements.gridPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      const count = parseInt(pill.dataset.count, 10);
+      setPlayerCount(count);
+    });
   });
-  elements.syncQueueBtn.addEventListener('click', () => {
-    syncChannelFeed(state.currentChannelId, false);
+
+  // Shuffle All
+  elements.randomizeAllBtn.addEventListener('click', randomizeAll);
+
+  // Sync Feed
+  elements.syncBtn.addEventListener('click', () => {
+    syncLiveFeed(state.currentChannelId);
+  });
+
+  // Audio Info
+  elements.audioInfoBtn.addEventListener('click', () => {
+    showToast('Click any video or its speaker icon to unmute sound!');
   });
 
   // Preset Chips
   elements.presetChips.forEach(chip => {
     chip.addEventListener('click', () => {
-      const channel = chip.dataset.channel;
-      if (channel === DEFAULT_CHANNEL_ID) {
-        loadDefaultChannel();
-      } else {
-        loadPresetChannel(channel);
-      }
+      loadChannel(chip.dataset.channel);
     });
   });
 
-  // Controls
-  elements.nextBtn.addEventListener('click', playNext);
-  elements.prevBtn.addEventListener('click', playPrev);
-  elements.playPauseBtn.addEventListener('click', togglePlayPause);
-  elements.muteBtn.addEventListener('click', toggleMute);
-
-  // Copy Short URL
-  elements.copyBtn.addEventListener('click', () => {
-    if (!state.shortsQueue.length) return;
-    const current = state.shortsQueue[state.currentIndex];
-    const url = `https://www.youtube.com/shorts/${current.id}`;
-    navigator.clipboard.writeText(url).then(() => {
-      showToast('Copied short link to clipboard!');
-    }).catch(() => {
-      showToast('Failed to copy link');
-    });
-  });
-
-  // Queue Drawer
-  elements.toggleQueueBtn.addEventListener('click', () => {
-    elements.queueDrawer.classList.toggle('open');
-  });
-  elements.closeQueueBtn.addEventListener('click', () => {
-    elements.queueDrawer.classList.remove('open');
-  });
-
-  // Shuffle Queue
-  elements.shuffleBtn.addEventListener('click', () => {
-    if (state.shortsQueue.length <= 1) return;
-    const current = state.shortsQueue[state.currentIndex];
-    const rest = state.shortsQueue.filter((_, i) => i !== state.currentIndex);
-    for (let i = rest.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [rest[i], rest[j]] = [rest[j], rest[i]];
-    }
-    state.shortsQueue = [current, ...rest];
-    state.currentIndex = 0;
-    renderQueue();
-    showToast('Queue shuffled');
-  });
-
-  // Clear Queue
-  elements.clearQueueBtn.addEventListener('click', () => {
-    if (confirm('Clear the current shorts queue?')) {
-      state.shortsQueue = [];
-      state.currentIndex = 0;
-      renderQueue();
-      elements.videoTitle.textContent = 'Queue is empty';
-      elements.channelName.textContent = 'None';
-      elements.counterPill.textContent = '0 / 0';
-      if (state.ytPlayer && state.ytPlayer.stopVideo) {
-        state.ytPlayer.stopVideo();
-      }
-      showToast('Queue cleared');
-    }
-  });
-
-  // Keyboard Shortcuts
+  // Keyboard shortcut: Press R to Randomize All, Space to toggle audio
   window.addEventListener('keydown', (e) => {
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-
-    if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
-      e.preventDefault();
-      playNext();
-    } else if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      playPrev();
-    } else if (e.key === ' ' || e.code === 'Space') {
-      e.preventDefault();
-      togglePlayPause();
-    } else if (e.key.toLowerCase() === 'm') {
-      e.preventDefault();
-      toggleMute();
+    if (e.key.toLowerCase() === 'r') {
+      randomizeAll();
     }
   });
-
-  // Mouse Wheel Debounce
-  let wheelTimeout = null;
-  elements.shortsCard.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    if (wheelTimeout) return;
-    if (e.deltaY > 20) {
-      playNext();
-    } else if (e.deltaY < -20) {
-      playPrev();
-    }
-    wheelTimeout = setTimeout(() => {
-      wheelTimeout = null;
-    }, 600);
-  }, { passive: false });
-
-  // Touch Swipe for mobile/tablets
-  let touchStartY = 0;
-  elements.shortsCard.addEventListener('touchstart', (e) => {
-    touchStartY = e.changedTouches[0].screenY;
-  }, { passive: true });
-
-  elements.shortsCard.addEventListener('touchend', (e) => {
-    const touchEndY = e.changedTouches[0].screenY;
-    const diff = touchStartY - touchEndY;
-    if (Math.abs(diff) > 45) {
-      if (diff > 0) {
-        playNext();
-      } else {
-        playPrev();
-      }
-    }
-  }, { passive: true });
-
-  // Settings
-  elements.settingsBtn.addEventListener('click', () => {
-    elements.settingsModal.classList.remove('hidden');
-    if (state.apiKey) elements.apiKeyInput.value = state.apiKey;
-  });
-  elements.closeSettingsBtn.addEventListener('click', () => {
-    elements.settingsModal.classList.add('hidden');
-  });
-  elements.settingsModal.addEventListener('click', (e) => {
-    if (e.target === elements.settingsModal) {
-      elements.settingsModal.classList.add('hidden');
-    }
-  });
-
-  elements.autoAdvanceToggle.addEventListener('change', (e) => {
-    state.autoAdvance = e.target.checked;
-    if (state.autoAdvance) {
-      elements.loopToggle.checked = false;
-      state.loopCurrent = false;
-    }
-  });
-
-  elements.loopToggle.addEventListener('change', (e) => {
-    state.loopCurrent = e.target.checked;
-    if (state.loopCurrent) {
-      elements.autoAdvanceToggle.checked = false;
-      state.autoAdvance = false;
-    }
-  });
-
-  elements.autoSyncToggle.addEventListener('change', (e) => {
-    state.autoSync = e.target.checked;
-  });
-
-  elements.saveApiKeyBtn.addEventListener('click', () => {
-    const key = elements.apiKeyInput.value.trim();
-    state.apiKey = key;
-    localStorage.setItem('yt_shorts_api_key', key);
-    showToast('API Key saved!');
-    elements.settingsModal.classList.add('hidden');
-  });
-
-  // Background Auto-sync check every 90 seconds for future uploads
-  setInterval(() => {
-    if (state.autoSync && state.currentChannelId === DEFAULT_CHANNEL_ID) {
-      syncChannelFeed(DEFAULT_CHANNEL_ID, true);
-    }
-  }, 90000);
 }
 
-// Start
-setupEventListeners();
+// Kickoff
+setupEvents();
+renderMatrix();
+syncLiveFeed(DEFAULT_CHANNEL_ID);

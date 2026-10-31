@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BLVCKTORQUE — YouTube Shorts Player</title>
+  <title>BLVCKTORQUE — YouTube Shorts Multi-Stream Wall</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- Top Bar: Channel input & minimal header -->
+    <!-- Top Bar -->
     <header class="top-nav">
       <div class="brand" id="brand-home" title="Reset to BLVCKTORQUE">
         <div class="brand-icon">
@@ -19,9 +19,10 @@
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
         </div>
-        <span class="brand-name">Shorts<b>Stream</b></span>
+        <span class="brand-name">Shorts<b>Matrix</b></span>
       </div>
 
+      <!-- Channel Search / Loader -->
       <form id="channel-form" class="search-form">
         <div class="input-wrapper">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -31,22 +32,43 @@
           <input 
             type="text" 
             id="channel-input" 
-            placeholder="Channel link (studio.youtube.com/... or @handle), ID, or Short URL..." 
+            placeholder="Paste channel URL, studio link, @handle, or ID..." 
             autocomplete="off" 
             spellcheck="false"
           />
           <button type="submit" id="load-btn" aria-label="Load channel">
             <span>Load</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
           </button>
         </div>
       </form>
 
+      <!-- Multi-Player Grid Toggle (1, 4, 8, 12, 16, 24) -->
+      <div class="grid-controls">
+        <span class="grid-label">Players:</span>
+        <div class="grid-pill-group" id="grid-toggle-group">
+          <button class="grid-pill" data-count="1">1</button>
+          <button class="grid-pill active" data-count="4">4</button>
+          <button class="grid-pill" data-count="8">8</button>
+          <button class="grid-pill" data-count="12">12</button>
+          <button class="grid-pill" data-count="16">16</button>
+          <button class="grid-pill" data-count="24">24</button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
       <div class="top-actions">
-        <button id="sync-btn" class="icon-btn" title="Sync / Fetch Latest Uploads" aria-label="Sync Uploads">
+        <button id="randomize-all-btn" class="icon-btn-highlight" title="Randomize All Videos" aria-label="Randomize Videos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
+          </svg>
+          <span>Shuffle All</span>
+        </button>
+
+        <button id="sync-btn" class="icon-btn" title="Sync Channel Feed" aria-label="Sync Feed">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
             <polyline points="1 20 1 14 7 14"></polyline>
@@ -54,204 +76,41 @@
           </svg>
         </button>
 
-        <button id="toggle-queue-btn" class="icon-btn" title="Toggle Shorts Queue" aria-label="Toggle Shorts Queue">
+        <button id="audio-info-btn" class="icon-btn" title="Audio Status" aria-label="Audio Status">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-          <span class="badge" id="queue-count">0</span>
-        </button>
-
-        <button id="settings-btn" class="icon-btn" title="Player Settings" aria-label="Player Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
           </svg>
         </button>
       </div>
     </header>
 
-    <!-- Quick Channel Suggestion Chips -->
+    <!-- Channel Selector Chips -->
     <div class="preset-channels" id="preset-channels">
-      <span class="preset-label">Channels:</span>
-      <button class="chip active featured-chip" data-channel="UCc3WaSgyMJ4q1orDuTla1BA">🔥 BLVCKTORQUE (My Channel)</button>
+      <span class="preset-label">Channel:</span>
+      <button class="chip active featured-chip" data-channel="UCc3WaSgyMJ4q1orDuTla1BA">🔥 BLVCKTORQUE (Active)</button>
       <button class="chip" data-channel="@veritasium">Veritasium</button>
       <button class="chip" data-channel="@mkbhd">MKBHD</button>
       <button class="chip" data-channel="@ZachKing">Zach King</button>
       <button class="chip" data-channel="@MrBeast">MrBeast</button>
+      <div class="channel-stats">
+        <span class="live-dot"></span>
+        <span id="active-channel-name">BLVCKTORQUE</span> • 
+        <span id="pool-count">15 Shorts in library</span>
+      </div>
     </div>
 
-    <!-- Main Stage: Center 9:16 Shorts Player & Floating Action Controls -->
-    <main class="main-stage">
-      <div class="player-wrapper">
-        <!-- Video Card Phone Shell -->
-        <div class="shorts-card" id="shorts-card">
-          <!-- Dynamic YouTube Player container -->
-          <div id="yt-player-container">
-            <div id="yt-player"></div>
-          </div>
-
-          <!-- Loading state overlay -->
-          <div class="player-loader" id="player-loader">
-            <div class="spinner"></div>
-            <p id="loader-status">Loading shorts...</p>
-          </div>
-
-          <!-- Overlay video info: Minimal bottom overlay -->
-          <div class="video-overlay" id="video-overlay">
-            <div class="channel-info-row">
-              <span class="channel-avatar" id="channel-avatar-icon">B</span>
-              <span class="channel-name" id="current-channel-name">BLVCKTORQUE</span>
-              <a href="#" target="_blank" id="yt-external-link" class="external-link" title="Open on YouTube">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </a>
-            </div>
-            <h2 class="video-title" id="current-video-title">Red Bull Athletes In GTA 5 Be Like... 🪂🔥 Extreme Stunts Compilation</h2>
-            <div class="video-meta-row">
-              <span class="counter-pill" id="counter-pill">1 / 15</span>
-              <span class="keyboard-tip">↑ / ↓ or scroll to flip</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Vertical Navigation Control Rail (Minimal & intuitive) -->
-        <div class="vertical-controls">
-          <button id="prev-btn" class="nav-control-btn" title="Previous Short (Up Arrow / K)" aria-label="Previous Short">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </button>
-          
-          <button id="play-pause-btn" class="nav-control-btn" title="Play / Pause (Space)" aria-label="Play / Pause">
-            <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            <svg id="pause-icon" class="hidden" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16"></rect>
-              <rect x="14" y="4" width="4" height="16"></rect>
-            </svg>
-          </button>
-
-          <button id="next-btn" class="nav-control-btn primary" title="Next Short (Down Arrow / J)" aria-label="Next Short">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-
-          <button id="mute-btn" class="nav-control-btn" title="Mute / Unmute (M)" aria-label="Mute / Unmute">
-            <svg id="volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            </svg>
-            <svg id="muted-icon" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-              <line x1="23" y1="9" x2="17" y2="15"></line>
-              <line x1="17" y1="9" x2="23" y2="15"></line>
-            </svg>
-          </button>
-
-          <button id="copy-btn" class="nav-control-btn" title="Copy Current Short URL" aria-label="Copy Short URL">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-          </button>
-        </div>
+    <!-- Multi-Stream Grid Wall -->
+    <main class="grid-stage">
+      <div class="shorts-matrix grid-4" id="shorts-matrix">
+        <!-- Dynamic Player Cards will be rendered here -->
       </div>
-
-      <!-- Slide-in Queue Sidebar -->
-      <aside class="queue-drawer" id="queue-drawer">
-        <div class="drawer-header">
-          <div class="drawer-title-group">
-            <h3 id="queue-header-title">BLVCKTORQUE Shorts</h3>
-            <span class="live-indicator"><span class="dot"></span> Live Feed</span>
-          </div>
-          <button id="close-queue-btn" class="icon-btn-sm" aria-label="Close Queue">✕</button>
-        </div>
-        <div class="queue-actions">
-          <button id="sync-queue-btn" class="sub-btn">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
-            Sync Feed
-          </button>
-          <button id="shuffle-btn" class="sub-btn">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="16 3 21 3 21 8"></polyline>
-              <line x1="4" y1="20" x2="21" y2="3"></line>
-              <polyline points="21 16 21 21 16 21"></polyline>
-              <line x1="15" y1="15" x2="21" y2="21"></line>
-              <line x1="4" y1="4" x2="9" y2="9"></line>
-            </svg>
-            Shuffle
-          </button>
-          <button id="clear-queue-btn" class="sub-btn text-danger">Clear</button>
-        </div>
-        <div class="queue-list" id="queue-list">
-          <!-- Items inserted dynamically -->
-        </div>
-      </aside>
     </main>
 
-    <!-- Settings Modal -->
-    <div class="modal-backdrop hidden" id="settings-modal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3>Player Options</h3>
-          <button id="close-settings-btn" class="icon-btn-sm">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="setting-item">
-            <div class="setting-text">
-              <label for="auto-advance-toggle">Auto-advance to next short</label>
-              <span class="setting-desc">Plays next short automatically when finished</span>
-            </div>
-            <input type="checkbox" id="auto-advance-toggle" checked class="switch">
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-text">
-              <label for="loop-toggle">Loop current short</label>
-              <span class="setting-desc">Repeats the short on endless loop</span>
-            </div>
-            <input type="checkbox" id="loop-toggle" class="switch">
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-text">
-              <label for="auto-sync-toggle">Auto-check for new uploads</label>
-              <span class="setting-desc">Periodically syncs your channel in background</span>
-            </div>
-            <input type="checkbox" id="auto-sync-toggle" checked class="switch">
-          </div>
-
-          <div class="setting-divider"></div>
-
-          <div class="api-key-box">
-            <label for="yt-api-key">YouTube Data API Key (Optional)</label>
-            <p class="api-hint">Allows fetching up to 50 shorts directly without public proxies. The app also works automatically without a key using YouTube's real-time feeds.</p>
-            <input type="password" id="yt-api-key" placeholder="AIzaSy..." autocomplete="off">
-            <button id="save-api-key-btn" class="sub-btn">Save Key</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Notification Toast -->
-    <div id="toast" class="toast hidden">Copied short URL to clipboard!</div>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">Randomized all shorts!</div>
   </div>
 
-  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="app.js"></script>
 </body>
 </html>
