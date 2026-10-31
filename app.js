@@ -1,6 +1,6 @@
 /**
  * BLVCKTORQUE Shorts Multi-Player Wall
- * Pure vanilla JavaScript with bulletproof event handlers
+ * With automatic video re-shuffle on playback completion (no repeating until cycle finishes)
  */
 
 const DEFAULT_CHANNEL_ID = 'UCc3WaSgyMJ4q1orDuTla1BA';
@@ -53,13 +53,15 @@ window.appState = {
   playerCount: 4,
   isPlaying: false,
   activeAudioIndex: null,
-  activeCards: []
+  activeCards: [],
+  playedHistoryPerSlot: {}, // slotIndex -> Set of videoIds to avoid repeating
+  ytPlayers: {} // slotIndex -> YT.Player instance
 };
 
-// Build Direct YouTube Embed URL (Works in Chrome, Brave, Edge, Firefox, Safari)
+// Build Direct YouTube Embed URL (enablejsapi=1 allows listening for ENDED state)
 function buildEmbedUrl(videoId, isMuted = true) {
   const muteVal = isMuted ? 1 : 0;
-  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=${muteVal}&loop=1&playlist=${videoId}&playsinline=1&controls=1&modestbranding=1&enablejsapi=1`;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=${muteVal}&playsinline=1&controls=1&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin || 'http://localhost')}`;
 }
 
 // Global: Change Player Count (1, 4, 8, 12, 16, 24)
@@ -98,7 +100,6 @@ window.changePlayerCount = function(count) {
     heroBtnLabel.textContent = `Launch ${count} Shorts Players`;
   }
 
-  // If already running, refresh the grid immediately
   if (window.appState.isPlaying) {
     renderMatrix();
     showToast(`Switched to ${count} players grid!`);
@@ -117,6 +118,7 @@ window.startOrShuffleStreams = function() {
 
   window.appState.isPlaying = true;
   window.appState.activeAudioIndex = null;
+  window.appState.playedHistoryPerSlot = {};
 
   if (launchHero) launchHero.classList.add('hidden');
   if (shortsMatrix) shortsMatrix.classList.remove('hidden');
@@ -153,7 +155,32 @@ window.stopAllStreams = function() {
   showToast('Stopped all video streams');
 };
 
-// Render Matrix with Chosen Count
+// Get Next Non-Repeated Random Short for a Slot
+function getNextNonRepeatedShort(slotIndex, currentVideoId = null) {
+  const pool = window.appState.shortsPool;
+  if (!window.appState.playedHistoryPerSlot[slotIndex]) {
+    window.appState.playedHistoryPerSlot[slotIndex] = new Set();
+  }
+  const history = window.appState.playedHistoryPerSlot[slotIndex];
+
+  // Candidates not recently played in this slot and not currently playing
+  let candidates = pool.filter(v => v.id !== currentVideoId && !history.has(v.id));
+
+  // If all videos in the pool have been seen in this slot, reset history for continuous looping
+  if (candidates.length === 0) {
+    history.clear();
+    candidates = pool.filter(v => v.id !== currentVideoId);
+  }
+
+  const selected = candidates.length > 0 
+    ? candidates[Math.floor(Math.random() * candidates.length)] 
+    : pool[0];
+
+  history.add(selected.id);
+  return selected;
+}
+
+// Render Matrix
 function renderMatrix() {
   const container = document.getElementById('shorts-matrix');
   if (!container) return;
@@ -162,12 +189,10 @@ function renderMatrix() {
   container.className = `shorts-matrix grid-${count}`;
   container.innerHTML = '';
   window.appState.activeCards = [];
-
-  // Shuffle pool
-  const pool = [...window.appState.shortsPool].sort(() => 0.5 - Math.random());
+  window.appState.ytPlayers = {};
 
   for (let i = 0; i < count; i++) {
-    const video = pool[i % pool.length] || pool[0];
+    const video = getNextNonRepeatedShort(i);
     const isMuted = window.appState.activeAudioIndex !== i;
 
     window.appState.activeCards.push({
@@ -191,7 +216,7 @@ function renderMatrix() {
                   title="${isMuted ? 'Unmute this video' : 'Mute'}">
             ${isMuted ? '🔇' : '🔊'}
           </button>
-          <button class="card-btn" onclick="reRollVideo(${i})" title="Randomize this slot">
+          <button class="card-btn" onclick="reRollVideo(${i})" title="Shuffle this slot without repeating">
             🎲
           </button>
           <a href="https://www.youtube.com/shorts/${video.id}" target="_blank" class="card-btn" title="Open on YouTube">
@@ -218,16 +243,13 @@ function renderMatrix() {
 // Global: Toggle Audio for Slot
 window.toggleAudio = function(index) {
   if (window.appState.activeAudioIndex === index) {
-    // Mute it
     window.appState.activeAudioIndex = null;
     showToast(`Muted #${index + 1}`);
   } else {
-    // Unmute target
     window.appState.activeAudioIndex = index;
     showToast(`🔊 Sound active on player #${index + 1}`);
   }
 
-  // Update all iframes
   window.appState.activeCards.forEach((card, i) => {
     const shouldMute = window.appState.activeAudioIndex !== i;
     const cardEl = document.getElementById(`card-slot-${i}`);
@@ -254,16 +276,12 @@ window.toggleAudio = function(index) {
   });
 };
 
-// Global: Re-roll single slot
+// Global: Re-roll single slot (picks non-repeated short)
 window.reRollVideo = function(index) {
   const cardData = window.appState.activeCards[index];
   if (!cardData) return;
 
-  const pool = window.appState.shortsPool;
-  const filtered = pool.filter(v => v.id !== cardData.video.id);
-  const source = filtered.length > 0 ? filtered : pool;
-  const newVideo = source[Math.floor(Math.random() * source.length)];
-
+  const newVideo = getNextNonRepeatedShort(index, cardData.video.id);
   cardData.video = newVideo;
 
   const iframe = document.getElementById(`iframe-slot-${index}`);
@@ -271,14 +289,37 @@ window.reRollVideo = function(index) {
   if (iframe) iframe.src = buildEmbedUrl(newVideo.id, cardData.isMuted);
   if (title) title.textContent = newVideo.title;
 
-  showToast(`Re-rolled #${index + 1}: ${newVideo.title}`);
+  showToast(`Shuffled #${index + 1}: ${newVideo.title}`);
 };
+
+// Auto-Shuffle on Video Ended Message (YouTube postMessage listener)
+window.addEventListener('message', function(event) {
+  if (!event.data || typeof event.data !== 'string') return;
+  try {
+    const data = JSON.parse(event.data);
+    // YouTube iframe API sends infoDelivery with playerState
+    // playerState 0 = YT.PlayerState.ENDED
+    if (data.event === 'infoDelivery' && data.info && data.info.playerState === 0) {
+      // Find which iframe sent this message
+      window.appState.activeCards.forEach((card, idx) => {
+        const iframe = document.getElementById(`iframe-slot-${idx}`);
+        if (iframe && iframe.contentWindow === event.source) {
+          // Video finished playing: auto-shuffle to next non-repeated short!
+          window.reRollVideo(idx);
+        }
+      });
+    }
+  } catch (e) {
+    // Non-JSON message from other sources, ignore
+  }
+});
 
 // Global: Reset to BLVCKTORQUE
 window.resetToDefaultChannel = function() {
   window.appState.currentChannelName = DEFAULT_CHANNEL_NAME;
   window.appState.currentChannelId = DEFAULT_CHANNEL_ID;
   window.appState.shortsPool = [...BLVCKTORQUE_SHORTS];
+  window.appState.playedHistoryPerSlot = {};
 
   updateChannelInfo();
   document.querySelectorAll('.quick-chip').forEach(c => {
@@ -300,6 +341,7 @@ window.loadPreset = function(key) {
 
   window.appState.currentChannelName = key;
   window.appState.shortsPool = [...list];
+  window.appState.playedHistoryPerSlot = {};
 
   updateChannelInfo();
   document.querySelectorAll('.quick-chip').forEach(c => {
@@ -333,7 +375,6 @@ window.handleChannelSubmit = function(e) {
     return;
   }
 
-  // Short ID or URL
   const videoMatch = val.match(/\/shorts\/([a-zA-Z0-9_-]{11})/) || val.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
   if (videoMatch) {
     const id = videoMatch[1];
