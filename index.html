@@ -3,112 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BLVCKTORQUE — YouTube Shorts Multi-Stream Wall</title>
+  <title>BLVCKTORQUE — YouTube Shorts Multi-Player Wall</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-container">
     <!-- Top Bar -->
     <header class="top-nav">
-      <div class="brand" id="brand-home" title="Reset to BLVCKTORQUE">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-        </div>
-        <span class="brand-name">Shorts<b>Matrix</b></span>
+      <div class="brand" onclick="resetToDefaultChannel()" title="Reset to BLVCKTORQUE">
+        <div class="brand-icon">▶</div>
+        <span class="brand-name">BLVCK<b>TORQUE</b> <small>Shorts Wall</small></span>
       </div>
 
-      <!-- Channel Search / Loader -->
-      <form id="channel-form" class="search-form">
-        <div class="input-wrapper">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input 
-            type="text" 
-            id="channel-input" 
-            placeholder="Paste channel URL, studio link, @handle, or ID..." 
-            autocomplete="off" 
-            spellcheck="false"
-          />
-          <button type="submit" id="load-btn" aria-label="Load channel">
-            <span>Load</span>
-          </button>
-        </div>
-      </form>
+      <!-- Main Action: Big Start / Shuffle Button -->
+      <div class="hero-actions">
+        <button id="main-start-btn" class="glow-start-btn" onclick="startOrShuffleStreams()">
+          <span class="btn-icon" id="start-btn-icon">▶</span>
+          <span id="start-btn-text">Start Players (4)</span>
+        </button>
+        <button id="stop-all-btn" class="stop-btn hidden" onclick="stopAllStreams()">
+          ⏹ Stop All
+        </button>
+      </div>
 
-      <!-- Multi-Player Grid Toggle (1, 4, 8, 12, 16, 24) -->
+      <!-- Player Count Toggle (1, 4, 8, 12, 16, 24) -->
       <div class="grid-controls">
-        <span class="grid-label">Players:</span>
-        <div class="grid-pill-group" id="grid-toggle-group">
-          <button class="grid-pill" data-count="1">1</button>
-          <button class="grid-pill active" data-count="4">4</button>
-          <button class="grid-pill" data-count="8">8</button>
-          <button class="grid-pill" data-count="12">12</button>
-          <button class="grid-pill" data-count="16">16</button>
-          <button class="grid-pill" data-count="24">24</button>
+        <span class="grid-label">Wall Size:</span>
+        <div class="grid-pill-group">
+          <button class="grid-pill" data-count="1" onclick="changePlayerCount(1)">1</button>
+          <button class="grid-pill active" data-count="4" onclick="changePlayerCount(4)">4</button>
+          <button class="grid-pill" data-count="8" onclick="changePlayerCount(8)">8</button>
+          <button class="grid-pill" data-count="12" onclick="changePlayerCount(12)">12</button>
+          <button class="grid-pill" data-count="16" onclick="changePlayerCount(16)">16</button>
+          <button class="grid-pill" data-count="24" onclick="changePlayerCount(24)">24</button>
         </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="top-actions">
-        <button id="randomize-all-btn" class="icon-btn-highlight" title="Randomize All Videos" aria-label="Randomize Videos">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 3 21 3 21 8"></polyline>
-            <line x1="4" y1="20" x2="21" y2="3"></line>
-            <polyline points="21 16 21 21 16 21"></polyline>
-            <line x1="15" y1="15" x2="21" y2="21"></line>
-            <line x1="4" y1="4" x2="9" y2="9"></line>
-          </svg>
-          <span>Shuffle All</span>
-        </button>
-
-        <button id="sync-btn" class="icon-btn" title="Sync Channel Feed" aria-label="Sync Feed">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-        </button>
-
-        <button id="audio-info-btn" class="icon-btn" title="Audio Status" aria-label="Audio Status">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-        </button>
       </div>
     </header>
 
-    <!-- Channel Selector Chips -->
-    <div class="preset-channels" id="preset-channels">
-      <span class="preset-label">Channel:</span>
-      <button class="chip active featured-chip" data-channel="UCc3WaSgyMJ4q1orDuTla1BA">🔥 BLVCKTORQUE (Active)</button>
-      <button class="chip" data-channel="@veritasium">Veritasium</button>
-      <button class="chip" data-channel="@mkbhd">MKBHD</button>
-      <button class="chip" data-channel="@ZachKing">Zach King</button>
-      <button class="chip" data-channel="@MrBeast">MrBeast</button>
-      <div class="channel-stats">
-        <span class="live-dot"></span>
-        <span id="active-channel-name">BLVCKTORQUE</span> • 
-        <span id="pool-count">15 Shorts in library</span>
+    <!-- Sub-Bar: Channel & Custom Input -->
+    <div class="sub-nav">
+      <div class="channel-badge">
+        <span class="live-pulse"></span>
+        <span>Channel: <b>BLVCKTORQUE</b> (<span id="shorts-pool-count">15</span> shorts available)</span>
+      </div>
+
+      <!-- Custom Channel or Video Input Form -->
+      <form id="channel-form" class="search-form" onsubmit="handleChannelSubmit(event)">
+        <input 
+          type="text" 
+          id="channel-input" 
+          placeholder="Paste another channel URL, studio link, or short..." 
+          autocomplete="off" 
+        />
+        <button type="submit" id="load-btn">Load</button>
+      </form>
+
+      <div class="channel-quick-links">
+        <button class="quick-chip active" onclick="resetToDefaultChannel()">🔥 BLVCKTORQUE</button>
+        <button class="quick-chip" onclick="loadPreset('@veritasium')">Veritasium</button>
+        <button class="quick-chip" onclick="loadPreset('@mkbhd')">MKBHD</button>
+        <button class="quick-chip" onclick="loadPreset('@ZachKing')">Zach King</button>
       </div>
     </div>
 
-    <!-- Multi-Stream Grid Wall -->
-    <main class="grid-stage">
-      <div class="shorts-matrix grid-4" id="shorts-matrix">
-        <!-- Dynamic Player Cards will be rendered here -->
+    <!-- Main Stage: Welcome Hero or Multi-Player Grid Wall -->
+    <main class="grid-stage" id="stage-container">
+      <!-- Welcome Launch Screen (shown before first start) -->
+      <div class="launch-hero" id="launch-hero">
+        <div class="hero-card">
+          <div class="hero-badge">YouTube Shorts Multi-Stream</div>
+          <h2>BLVCKTORQUE Shorts Wall</h2>
+          <p>Stream 1 to 24 random YouTube shorts simultaneously from <b>BLVCKTORQUE</b> with instant sound toggle and auto-loop.</p>
+          
+          <div class="hero-selector-row">
+            <span>Select initial player count:</span>
+            <div class="hero-pills">
+              <button class="hero-pill" onclick="changePlayerCount(1)">1 Player</button>
+              <button class="hero-pill active" onclick="changePlayerCount(4)">4 Players</button>
+              <button class="hero-pill" onclick="changePlayerCount(8)">8 Players</button>
+              <button class="hero-pill" onclick="changePlayerCount(12)">12 Players</button>
+              <button class="hero-pill" onclick="changePlayerCount(16)">16 Players</button>
+              <button class="hero-pill" onclick="changePlayerCount(24)">24 Players</button>
+            </div>
+          </div>
+
+          <button class="hero-big-start-btn" onclick="startOrShuffleStreams()">
+            <span class="play-triangle">▶</span>
+            <span id="hero-btn-label">Launch 4 Shorts Players</span>
+          </button>
+          
+          <div class="hero-features">
+            <span>✨ Automatically plays random shorts</span>
+            <span>🔊 Click any video to unmute</span>
+            <span>🔄 Re-roll any video anytime</span>
+          </div>
+        </div>
       </div>
+
+      <!-- Multi-Player Grid Matrix (populated dynamically on start) -->
+      <div class="shorts-matrix grid-4 hidden" id="shorts-matrix"></div>
     </main>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast hidden">Randomized all shorts!</div>
+    <!-- Floating Toast Notification -->
+    <div id="toast" class="toast hidden">Randomized all players!</div>
   </div>
 
   <script src="app.js"></script>

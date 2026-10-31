@@ -1,479 +1,399 @@
 /**
- * ShortsMatrix — Multi-Stream YouTube Shorts Wall
- * Supports 1 to 24 simultaneous random players
+ * BLVCKTORQUE Shorts Multi-Player Wall
+ * Pure vanilla JavaScript with bulletproof event handlers
  */
 
 const DEFAULT_CHANNEL_ID = 'UCc3WaSgyMJ4q1orDuTla1BA';
 const DEFAULT_CHANNEL_NAME = 'BLVCKTORQUE';
 
-// Channel Shorts Library (Pre-populated with real working shorts)
-const CHANNEL_POOLS = {
-  [DEFAULT_CHANNEL_ID]: {
-    name: 'BLVCKTORQUE',
-    shorts: [
-      { id: '0X9pWHijTCw', title: 'Red Bull Athletes In GTA 5 Be Like... 🪂🔥 Extreme Stunts Compilation' },
-      { id: 'f9gk9xUtos8', title: 'Top Gun\'s "Best" Pilot Crashes In GTA 5! ✈️💀 Epic Fighter Jet Fail' },
-      { id: 'bosSZd6gQNI', title: 'Fortnite Building In GTA 5 Is Actually INSANE! ⛏️🧱 Battle Royale Crossover' },
-      { id: 'sq6HhyzE8rg', title: '"Be Safe Out There" ...GTA 5 Public Lobbies: 💥💀 Pure Los Santos Chaos' },
-      { id: 'nLJpeCKbGEU', title: 'You Can STILL Do This Glitch In GTA 5 In 2025! 🚀😱 Super Launch Bug' },
-      { id: 'yW7PzDevJwg', title: 'The GTA 5 Cave Diver Memes NEED To Stop! 😂🤿 Claustrophobic Tunnel' },
-      { id: 'raLXHV__l2o', title: 'Can A BMX Bike Conquer The Hardest Turn In GTA 5?! 🚲🔥 Insane Bicycle Stunt' },
-      { id: '4xK9v6xZgbg', title: 'The FASTEST Way To Beat The Hardest Turn In GTA 5! ⚡🏎️ Speedrun Stunt' },
-      { id: '7iYmNFKMoJ0', title: 'Cave Divers For Literally No Reason In GTA 5! 🤿🌊 Claustrophobia Meme' },
-      { id: '4K7QtmljHl8', title: 'Why Did He Do That In GTA 5?! 🤦‍♂️💥 Heist Teammate Fail' },
-      { id: 'gzb8rMK8GTE', title: 'Pizza Delivery Boy VS The Hardest Turn In GTA 5! 🍕🛵 Impossible Run' },
-      { id: 'NtNhPmXJJJ0', title: 'I Hope GTA 6 DOESN\'T Have These Physics! 💀🚀 Broken GTA 5 Physics Glitch' },
-      { id: 'Ebto1Dwbuw8', title: 'This GTA 5 Clip Is Straight Out Of A James Bond Movie! 🕵️‍♂️💥 007 Car Chase' },
-      { id: '2BWmnXi-5gA', title: 'Just A Casual Drift In GTA Online... Wait For It! 🚗💨 Drift Fail' },
-      { id: 'GMAtt42y_cw', title: 'All POVs At The Hardest Turn In GTA 5! 🎥🏎️ Multi-Angle Stunt Showcase' }
-    ]
-  },
-  '@veritasium': {
-    name: 'Veritasium',
-    shorts: [
-      { id: '2cM2lY6hI9A', title: 'Why The Speed of Light Cannot Be Measured' },
-      { id: 'pWbk06bZgD0', title: 'The Surprising Secret Behind Miracles' },
-      { id: 'hK-Z4H2N7Yg', title: 'Can You Solve This Infinite Puzzle?' },
-      { id: 'mQh4fE-3Wj8', title: 'The Infinite Hotel Paradox' },
-      { id: 'Z9v9jH8u2G8', title: 'The Physics of Skipping Stones' }
-    ]
-  },
-  '@mkbhd': {
-    name: 'Marques Brownlee',
-    shorts: [
-      { id: '813Z0r4cW1w', title: 'The Weirdest Phone Feature Ever?' },
-      { id: '2G4gL2Gq1Hk', title: 'Is Apple Vision Pro Actually Worth It?' },
-      { id: '3Fz2dJ0sZ5M', title: 'This Tech Feels Like Magic' },
-      { id: 'vQ9yH6bB-tY', title: 'The Best Smartphone Camera Blind Test' }
-    ]
-  },
-  '@ZachKing': {
-    name: 'Zach King',
-    shorts: [
-      { id: '8OvdQZgI9bU', title: 'Magic Broom Flight Illusion' },
-      { id: 'w_c4g6yqG-o', title: 'Escaping Into Another Dimension' },
-      { id: 'dZ-jK3sVv9Q', title: 'The Impossible Mirror Trick' },
-      { id: 'M6U7j9lQ-tE', title: 'Painting Comes To Life' }
-    ]
-  },
-  '@MrBeast': {
-    name: 'MrBeast',
-    shorts: [
-      { id: '0e3GPea1Tyg', title: 'I Built 100 Wells in Africa' },
-      { id: 'kxpcV5N_bC4', title: 'Would You Press This Button For $100,000?' },
-      { id: 'm7m_l7S-q6c', title: 'Surviving 7 Days In An Abandoned City' },
-      { id: '2B8gX-7q4mY', title: 'Giving Free Homes To People In Need' }
-    ]
-  }
+// Curated library of 15 verified working shorts from BLVCKTORQUE
+const BLVCKTORQUE_SHORTS = [
+  { id: '0X9pWHijTCw', title: 'Red Bull Athletes In GTA 5 Be Like... 🪂🔥 Extreme Stunts Compilation' },
+  { id: 'f9gk9xUtos8', title: 'Top Gun\'s "Best" Pilot Crashes In GTA 5! ✈️💀 Epic Fighter Jet Fail' },
+  { id: 'bosSZd6gQNI', title: 'Fortnite Building In GTA 5 Is Actually INSANE! ⛏️🧱 Battle Royale Crossover' },
+  { id: 'sq6HhyzE8rg', title: '"Be Safe Out There" ...GTA 5 Public Lobbies: 💥💀 Pure Los Santos Chaos' },
+  { id: 'nLJpeCKbGEU', title: 'You Can STILL Do This Glitch In GTA 5 In 2025! 🚀😱 Super Launch Bug' },
+  { id: 'yW7PzDevJwg', title: 'The GTA 5 Cave Diver Memes NEED To Stop! 😂🤿 Claustrophobic Tunnel' },
+  { id: 'raLXHV__l2o', title: 'Can A BMX Bike Conquer The Hardest Turn In GTA 5?! 🚲🔥 Insane Bicycle Stunt' },
+  { id: '4xK9v6xZgbg', title: 'The FASTEST Way To Beat The Hardest Turn In GTA 5! ⚡🏎️ Speedrun Stunt' },
+  { id: '7iYmNFKMoJ0', title: 'Cave Divers For Literally No Reason In GTA 5! 🤿🌊 Claustrophobia Meme' },
+  { id: '4K7QtmljHl8', title: 'Why Did He Do That In GTA 5?! 🤦‍♂️💥 Heist Teammate Fail' },
+  { id: 'gzb8rMK8GTE', title: 'Pizza Delivery Boy VS The Hardest Turn In GTA 5! 🍕🛵 Impossible Run' },
+  { id: 'NtNhPmXJJJ0', title: 'I Hope GTA 6 DOESN\'T Have These Physics! 💀🚀 Broken GTA 5 Physics Glitch' },
+  { id: 'Ebto1Dwbuw8', title: 'This GTA 5 Clip Is Straight Out Of A James Bond Movie! 🕵️‍♂️💥 007 Car Chase' },
+  { id: '2BWmnXi-5gA', title: 'Just A Casual Drift In GTA Online... Wait For It! 🚗💨 Drift Fail' },
+  { id: 'GMAtt42y_cw', title: 'All POVs At The Hardest Turn In GTA 5! 🎥🏎️ Multi-Angle Stunt Showcase' }
+];
+
+const PRESETS = {
+  '@veritasium': [
+    { id: '2cM2lY6hI9A', title: 'Why The Speed of Light Cannot Be Measured' },
+    { id: 'pWbk06bZgD0', title: 'The Surprising Secret Behind Miracles' },
+    { id: 'hK-Z4H2N7Yg', title: 'Can You Solve This Infinite Puzzle?' },
+    { id: 'mQh4fE-3Wj8', title: 'The Infinite Hotel Paradox' }
+  ],
+  '@mkbhd': [
+    { id: '813Z0r4cW1w', title: 'The Weirdest Phone Feature Ever?' },
+    { id: '2G4gL2Gq1Hk', title: 'Is Apple Vision Pro Actually Worth It?' },
+    { id: '3Fz2dJ0sZ5M', title: 'This Tech Feels Like Magic' },
+    { id: 'vQ9yH6bB-tY', title: 'The Best Smartphone Camera Blind Test' }
+  ],
+  '@ZachKing': [
+    { id: '8OvdQZgI9bU', title: 'Magic Broom Flight Illusion' },
+    { id: 'w_c4g6yqG-o', title: 'Escaping Into Another Dimension' },
+    { id: 'dZ-jK3sVv9Q', title: 'The Impossible Mirror Trick' }
+  ]
 };
 
-// State
-const state = {
-  currentChannel: DEFAULT_CHANNEL_NAME,
+// Global App State
+window.appState = {
+  currentChannelName: DEFAULT_CHANNEL_NAME,
   currentChannelId: DEFAULT_CHANNEL_ID,
-  shortsPool: [...CHANNEL_POOLS[DEFAULT_CHANNEL_ID].shorts],
+  shortsPool: [...BLVCKTORQUE_SHORTS],
   playerCount: 4,
-  activeAudioCardIndex: null, // Index of card with sound unmuted
-  activeCards: [] // Array of { id, video, isMuted }
+  isPlaying: false,
+  activeAudioIndex: null,
+  activeCards: []
 };
 
-// DOM
-const elements = {
-  brandHome: document.getElementById('brand-home'),
-  channelForm: document.getElementById('channel-form'),
-  channelInput: document.getElementById('channel-input'),
-  gridToggleGroup: document.getElementById('grid-toggle-group'),
-  gridPills: document.querySelectorAll('.grid-pill'),
-  shortsMatrix: document.getElementById('shorts-matrix'),
-  randomizeAllBtn: document.getElementById('randomize-all-btn'),
-  syncBtn: document.getElementById('sync-btn'),
-  audioInfoBtn: document.getElementById('audio-info-btn'),
-  presetChips: document.querySelectorAll('.chip'),
-  activeChannelName: document.getElementById('active-channel-name'),
-  poolCount: document.getElementById('pool-count'),
-  toast: document.getElementById('toast')
-};
-
-// Build Embed URL (with autoplay, loop, mute, and playsinline for 100% browser compatibility)
-function createEmbedUrl(videoId, isMuted = true) {
-  const muteParam = isMuted ? 1 : 0;
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muteParam}&loop=1&playlist=${videoId}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1`;
+// Build Direct YouTube Embed URL (Works in Chrome, Brave, Edge, Firefox, Safari)
+function buildEmbedUrl(videoId, isMuted = true) {
+  const muteVal = isMuted ? 1 : 0;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=${muteVal}&loop=1&playlist=${videoId}&playsinline=1&controls=1&modestbranding=1&enablejsapi=1`;
 }
 
-// Generate Random Selection from Pool
-function getRandomShort(excludeId = null) {
-  if (!state.shortsPool.length) {
-    return { id: '0X9pWHijTCw', title: 'YouTube Short' };
-  }
-  const filtered = state.shortsPool.filter(s => s.id !== excludeId);
-  const source = filtered.length > 0 ? filtered : state.shortsPool;
-  return source[Math.floor(Math.random() * source.length)];
-}
+// Global: Change Player Count (1, 4, 8, 12, 16, 24)
+window.changePlayerCount = function(count) {
+  count = parseInt(count, 10);
+  window.appState.playerCount = count;
 
-// Render the Matrix
-function renderMatrix() {
-  elements.shortsMatrix.className = `shorts-matrix grid-${state.playerCount}`;
-  elements.shortsMatrix.innerHTML = '';
-  state.activeCards = [];
-
-  // Shuffle pool to spread unique videos across the slots
-  const shuffledPool = [...state.shortsPool].sort(() => 0.5 - Math.random());
-
-  for (let i = 0; i < state.playerCount; i++) {
-    // Pick video from shuffled pool, or wrap around if playerCount > pool length
-    const video = shuffledPool[i % shuffledPool.length] || getRandomShort();
-    const isMuted = state.activeAudioCardIndex !== i;
-
-    state.activeCards.push({
-      index: i,
-      video: video,
-      isMuted: isMuted
-    });
-
-    const card = createCardElement(i, video, isMuted);
-    elements.shortsMatrix.appendChild(card);
-  }
-
-  updateHeaderStats();
-}
-
-// Create a Single Player Card
-function createCardElement(index, video, isMuted) {
-  const card = document.createElement('div');
-  card.className = `player-card ${!isMuted ? 'has-sound' : ''}`;
-  card.id = `player-card-${index}`;
-
-  const embedUrl = createEmbedUrl(video.id, isMuted);
-
-  card.innerHTML = `
-    <div class="card-overlay-top">
-      <span class="player-badge">#${index + 1}</span>
-      <div class="card-btn-group">
-        <button class="card-action-btn sound-btn ${!isMuted ? 'sound-active' : ''}" title="${isMuted ? 'Unmute this video' : 'Mute'}">
-          ${isMuted ? getMuteIcon() : getVolumeIcon()}
-        </button>
-        <button class="card-action-btn re-roll-btn" title="Play another random short">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 3 21 3 21 8"></polyline>
-            <line x1="4" y1="20" x2="21" y2="3"></line>
-            <polyline points="21 16 21 21 16 21"></polyline>
-            <line x1="15" y1="15" x2="21" y2="21"></line>
-            <line x1="4" y1="4" x2="9" y2="9"></line>
-          </svg>
-        </button>
-        <a href="https://www.youtube.com/shorts/${video.id}" target="_blank" class="card-action-btn" title="Open in YouTube">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <line x1="10" y1="14" x2="21" y2="3"></line>
-          </svg>
-        </a>
-      </div>
-    </div>
-    <iframe 
-      id="iframe-${index}"
-      src="${embedUrl}" 
-      title="${escapeHTML(video.title || 'YouTube Short')}"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-      allowfullscreen
-      loading="lazy">
-    </iframe>
-    <div class="card-overlay-bottom">
-      <p class="card-video-title">${escapeHTML(video.title || 'YouTube Short')}</p>
-    </div>
-  `;
-
-  // Sound Button Click
-  const soundBtn = card.querySelector('.sound-btn');
-  soundBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleAudioOnCard(index);
-  });
-
-  // Re-roll Single Card
-  const reRollBtn = card.querySelector('.re-roll-btn');
-  reRollBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    reRollCard(index);
-  });
-
-  // Click card to unmute & focus
-  card.addEventListener('click', () => {
-    toggleAudioOnCard(index);
-  });
-
-  return card;
-}
-
-// Re-roll a Single Card with another random short
-function reRollCard(index) {
-  const cardData = state.activeCards[index];
-  if (!cardData) return;
-
-  const currentId = cardData.video.id;
-  const newVideo = getRandomShort(currentId);
-  cardData.video = newVideo;
-
-  const cardElement = document.getElementById(`player-card-${index}`);
-  if (cardElement) {
-    const iframe = cardElement.querySelector('iframe');
-    const title = cardElement.querySelector('.card-video-title');
-    const openLink = cardElement.querySelector('a.card-action-btn');
-
-    iframe.src = createEmbedUrl(newVideo.id, cardData.isMuted);
-    title.textContent = newVideo.title || 'YouTube Short';
-    openLink.href = `https://www.youtube.com/shorts/${newVideo.id}`;
-
-    showToast(`Swapped #${index + 1} to: ${newVideo.title}`);
-  }
-}
-
-// Toggle Audio for a Specific Card (Only one card has audio at a time)
-function toggleAudioOnCard(targetIndex) {
-  if (state.activeAudioCardIndex === targetIndex) {
-    // Already unmuted -> mute it
-    state.activeAudioCardIndex = null;
-    showToast(`Muted #${targetIndex + 1}`);
-  } else {
-    // Unmute target, mute previous
-    state.activeAudioCardIndex = targetIndex;
-    showToast(`🔊 Audio active on player #${targetIndex + 1}`);
-  }
-
-  // Update all cards iframe src and button styling
-  state.activeCards.forEach((cardData, idx) => {
-    const isNowMuted = state.activeAudioCardIndex !== idx;
-    const cardEl = document.getElementById(`player-card-${idx}`);
-    if (!cardEl) return;
-
-    if (cardData.isMuted !== isNowMuted) {
-      cardData.isMuted = isNowMuted;
-      const iframe = cardEl.querySelector('iframe');
-      iframe.src = createEmbedUrl(cardData.video.id, isNowMuted);
-
-      const soundBtn = cardEl.querySelector('.sound-btn');
-      if (isNowMuted) {
-        cardEl.classList.remove('has-sound');
-        soundBtn.classList.remove('sound-active');
-        soundBtn.innerHTML = getMuteIcon();
-      } else {
-        cardEl.classList.add('has-sound');
-        soundBtn.classList.add('sound-active');
-        soundBtn.innerHTML = getVolumeIcon();
-      }
-    }
-  });
-}
-
-// Randomize All Cards Simultaneously
-function randomizeAll() {
-  state.activeAudioCardIndex = null;
-  renderMatrix();
-  showToast(`🎲 Shuffled all ${state.playerCount} players!`);
-}
-
-// Switch Grid Count (1, 4, 8, 12, 16, 24)
-function setPlayerCount(count) {
-  state.playerCount = count;
-  elements.gridPills.forEach(pill => {
+  // Update top pills
+  document.querySelectorAll('.grid-pill').forEach(pill => {
     if (parseInt(pill.dataset.count, 10) === count) {
       pill.classList.add('active');
     } else {
       pill.classList.remove('active');
     }
   });
-  renderMatrix();
-}
 
-// Channel Loading
-function loadChannel(channelKey) {
-  const pool = CHANNEL_POOLS[channelKey];
-  if (!pool) return;
-
-  state.currentChannel = pool.name;
-  state.currentChannelId = channelKey;
-  state.shortsPool = [...pool.shorts];
-
-  elements.presetChips.forEach(chip => {
-    if (chip.dataset.channel === channelKey) {
-      chip.classList.add('active');
+  // Update hero pills
+  document.querySelectorAll('.hero-pill').forEach(pill => {
+    if (pill.textContent.includes(String(count))) {
+      pill.classList.add('active');
     } else {
-      chip.classList.remove('active');
+      pill.classList.remove('active');
     }
   });
 
-  renderMatrix();
-  showToast(`Loaded ${pool.name} (${state.shortsPool.length} shorts)`);
+  // Update start button text
+  const startBtnText = document.getElementById('start-btn-text');
+  if (startBtnText) {
+    startBtnText.textContent = window.appState.isPlaying 
+      ? `Reshuffle All (${count})` 
+      : `Start Players (${count})`;
+  }
 
-  // Sync latest RSS feed if it's a channel ID
-  if (channelKey.startsWith('UC')) {
-    syncLiveFeed(channelKey);
+  const heroBtnLabel = document.getElementById('hero-btn-label');
+  if (heroBtnLabel) {
+    heroBtnLabel.textContent = `Launch ${count} Shorts Players`;
+  }
+
+  // If already running, refresh the grid immediately
+  if (window.appState.isPlaying) {
+    renderMatrix();
+    showToast(`Switched to ${count} players grid!`);
+  } else {
+    showToast(`Selected ${count} players`);
+  }
+};
+
+// Global: Start Playing or Reshuffle
+window.startOrShuffleStreams = function() {
+  const launchHero = document.getElementById('launch-hero');
+  const shortsMatrix = document.getElementById('shorts-matrix');
+  const startBtnText = document.getElementById('start-btn-text');
+  const startBtnIcon = document.getElementById('start-btn-icon');
+  const stopAllBtn = document.getElementById('stop-all-btn');
+
+  window.appState.isPlaying = true;
+  window.appState.activeAudioIndex = null;
+
+  if (launchHero) launchHero.classList.add('hidden');
+  if (shortsMatrix) shortsMatrix.classList.remove('hidden');
+  if (stopAllBtn) stopAllBtn.classList.remove('hidden');
+
+  if (startBtnText) startBtnText.textContent = `Reshuffle All (${window.appState.playerCount})`;
+  if (startBtnIcon) startBtnIcon.textContent = '🔄';
+
+  renderMatrix();
+  showToast(`Streaming ${window.appState.playerCount} random shorts!`);
+};
+
+// Global: Stop All Streams
+window.stopAllStreams = function() {
+  const launchHero = document.getElementById('launch-hero');
+  const shortsMatrix = document.getElementById('shorts-matrix');
+  const startBtnText = document.getElementById('start-btn-text');
+  const startBtnIcon = document.getElementById('start-btn-icon');
+  const stopAllBtn = document.getElementById('stop-all-btn');
+
+  window.appState.isPlaying = false;
+  window.appState.activeAudioIndex = null;
+
+  if (shortsMatrix) {
+    shortsMatrix.innerHTML = '';
+    shortsMatrix.classList.add('hidden');
+  }
+  if (launchHero) launchHero.classList.remove('hidden');
+  if (stopAllBtn) stopAllBtn.classList.add('hidden');
+
+  if (startBtnText) startBtnText.textContent = `Start Players (${window.appState.playerCount})`;
+  if (startBtnIcon) startBtnIcon.textContent = '▶';
+
+  showToast('Stopped all video streams');
+};
+
+// Render Matrix with Chosen Count
+function renderMatrix() {
+  const container = document.getElementById('shorts-matrix');
+  if (!container) return;
+
+  const count = window.appState.playerCount;
+  container.className = `shorts-matrix grid-${count}`;
+  container.innerHTML = '';
+  window.appState.activeCards = [];
+
+  // Shuffle pool
+  const pool = [...window.appState.shortsPool].sort(() => 0.5 - Math.random());
+
+  for (let i = 0; i < count; i++) {
+    const video = pool[i % pool.length] || pool[0];
+    const isMuted = window.appState.activeAudioIndex !== i;
+
+    window.appState.activeCards.push({
+      index: i,
+      video: video,
+      isMuted: isMuted
+    });
+
+    const card = document.createElement('div');
+    card.className = `player-card ${!isMuted ? 'has-sound' : ''}`;
+    card.id = `card-slot-${i}`;
+
+    const embedUrl = buildEmbedUrl(video.id, isMuted);
+
+    card.innerHTML = `
+      <div class="card-header-bar">
+        <span class="slot-badge">#${i + 1}</span>
+        <div class="slot-actions">
+          <button class="card-btn sound-toggle-btn ${!isMuted ? 'sound-on' : ''}" 
+                  onclick="toggleAudio(${i})" 
+                  title="${isMuted ? 'Unmute this video' : 'Mute'}">
+            ${isMuted ? '🔇' : '🔊'}
+          </button>
+          <button class="card-btn" onclick="reRollVideo(${i})" title="Randomize this slot">
+            🎲
+          </button>
+          <a href="https://www.youtube.com/shorts/${video.id}" target="_blank" class="card-btn" title="Open on YouTube">
+            ↗
+          </a>
+        </div>
+      </div>
+      <iframe 
+        id="iframe-slot-${i}"
+        src="${embedUrl}" 
+        title="${escapeHtml(video.title)}" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+        allowfullscreen>
+      </iframe>
+      <div class="card-footer-overlay">
+        <p class="slot-title" id="title-slot-${i}">${escapeHtml(video.title)}</p>
+      </div>
+    `;
+
+    container.appendChild(card);
   }
 }
 
-// Live Feed Sync (Pulls latest/future uploads from YouTube RSS)
-async function syncLiveFeed(channelId = DEFAULT_CHANNEL_ID) {
-  elements.syncBtn.classList.add('spinning');
-  try {
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&_t=${Date.now()}`;
-    const res = await fetch(apiUrl);
-    const data = await res.json();
+// Global: Toggle Audio for Slot
+window.toggleAudio = function(index) {
+  if (window.appState.activeAudioIndex === index) {
+    // Mute it
+    window.appState.activeAudioIndex = null;
+    showToast(`Muted #${index + 1}`);
+  } else {
+    // Unmute target
+    window.appState.activeAudioIndex = index;
+    showToast(`🔊 Sound active on player #${index + 1}`);
+  }
 
-    if (data.status === 'ok' && data.items && data.items.length) {
-      const newItems = data.items.map(item => ({
-        id: (item.guid || '').replace('yt:video:', '') || extractVideoId(item.link),
-        title: item.title
-      })).filter(i => i.id);
+  // Update all iframes
+  window.appState.activeCards.forEach((card, i) => {
+    const shouldMute = window.appState.activeAudioIndex !== i;
+    const cardEl = document.getElementById(`card-slot-${i}`);
+    if (!cardEl) return;
 
-      if (newItems.length > 0) {
-        const existingIds = new Set(state.shortsPool.map(s => s.id));
-        const fresh = newItems.filter(i => !existingIds.has(i.id));
-        if (fresh.length > 0) {
-          state.shortsPool = [...fresh, ...state.shortsPool];
-          updateHeaderStats();
-          showToast(`✨ Added ${fresh.length} new short(s) from channel!`);
+    if (card.isMuted !== shouldMute) {
+      card.isMuted = shouldMute;
+      const iframe = document.getElementById(`iframe-slot-${i}`);
+      if (iframe) {
+        iframe.src = buildEmbedUrl(card.video.id, shouldMute);
+      }
+      const soundBtn = cardEl.querySelector('.sound-toggle-btn');
+      if (soundBtn) {
+        soundBtn.textContent = shouldMute ? '🔇' : '🔊';
+        if (shouldMute) {
+          soundBtn.classList.remove('sound-on');
+          cardEl.classList.remove('has-sound');
+        } else {
+          soundBtn.classList.add('sound-on');
+          cardEl.classList.add('has-sound');
         }
       }
     }
-  } catch (err) {
-    console.warn('Live sync fallback used');
-  } finally {
-    elements.syncBtn.classList.remove('spinning');
-  }
-}
+  });
+};
 
-// Input Parser
-function handleInput(inputStr) {
-  inputStr = inputStr.trim();
-  if (!inputStr) return;
+// Global: Re-roll single slot
+window.reRollVideo = function(index) {
+  const cardData = window.appState.activeCards[index];
+  if (!cardData) return;
 
-  // Extract channel ID if studio or youtube link
-  const channelIdMatch = inputStr.match(/(UC[a-zA-Z0-9_-]{22})/);
-  if (channelIdMatch) {
-    const id = channelIdMatch[1];
-    if (id === DEFAULT_CHANNEL_ID) {
-      loadChannel(DEFAULT_CHANNEL_ID);
-    } else {
-      state.currentChannel = 'Custom Channel';
-      state.currentChannelId = id;
-      syncLiveFeed(id).then(() => renderMatrix());
-    }
-    return;
-  }
+  const pool = window.appState.shortsPool;
+  const filtered = pool.filter(v => v.id !== cardData.video.id);
+  const source = filtered.length > 0 ? filtered : pool;
+  const newVideo = source[Math.floor(Math.random() * source.length)];
 
-  // Handle preset channels
-  const match = Object.keys(CHANNEL_POOLS).find(k => k.toLowerCase() === inputStr.toLowerCase());
-  if (match) {
-    loadChannel(match);
-    return;
-  }
+  cardData.video = newVideo;
 
-  // Direct video/short ID
-  const directId = extractVideoId(inputStr);
-  if (directId) {
-    state.shortsPool.unshift({ id: directId, title: 'Custom Short' });
+  const iframe = document.getElementById(`iframe-slot-${index}`);
+  const title = document.getElementById(`title-slot-${index}`);
+  if (iframe) iframe.src = buildEmbedUrl(newVideo.id, cardData.isMuted);
+  if (title) title.textContent = newVideo.title;
+
+  showToast(`Re-rolled #${index + 1}: ${newVideo.title}`);
+};
+
+// Global: Reset to BLVCKTORQUE
+window.resetToDefaultChannel = function() {
+  window.appState.currentChannelName = DEFAULT_CHANNEL_NAME;
+  window.appState.currentChannelId = DEFAULT_CHANNEL_ID;
+  window.appState.shortsPool = [...BLVCKTORQUE_SHORTS];
+
+  updateChannelInfo();
+  document.querySelectorAll('.quick-chip').forEach(c => {
+    if (c.textContent.includes('BLVCKTORQUE')) c.classList.add('active');
+    else c.classList.remove('active');
+  });
+
+  if (window.appState.isPlaying) {
     renderMatrix();
+  }
+  showToast('Loaded BLVCKTORQUE channel');
+  syncChannelFeed(DEFAULT_CHANNEL_ID);
+};
+
+// Global: Load Preset
+window.loadPreset = function(key) {
+  const list = PRESETS[key];
+  if (!list) return;
+
+  window.appState.currentChannelName = key;
+  window.appState.shortsPool = [...list];
+
+  updateChannelInfo();
+  document.querySelectorAll('.quick-chip').forEach(c => {
+    if (c.textContent.includes(key.replace('@', ''))) c.classList.add('active');
+    else c.classList.remove('active');
+  });
+
+  if (window.appState.isPlaying) {
+    renderMatrix();
+  }
+  showToast(`Loaded ${key}`);
+};
+
+// Global: Form submit
+window.handleChannelSubmit = function(e) {
+  e.preventDefault();
+  const input = document.getElementById('channel-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+
+  const matchId = val.match(/(UC[a-zA-Z0-9_-]{22})/);
+  if (matchId) {
+    const id = matchId[1];
+    window.appState.currentChannelName = 'Custom Channel';
+    window.appState.currentChannelId = id;
+    syncChannelFeed(id).then(() => {
+      if (window.appState.isPlaying) renderMatrix();
+      showToast('Loaded custom channel!');
+    });
+    return;
+  }
+
+  // Short ID or URL
+  const videoMatch = val.match(/\/shorts\/([a-zA-Z0-9_-]{11})/) || val.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (videoMatch) {
+    const id = videoMatch[1];
+    window.appState.shortsPool.unshift({ id: id, title: 'Custom Short' });
+    updateChannelInfo();
+    if (window.appState.isPlaying) renderMatrix();
     showToast('Added custom short to stream!');
   }
+};
+
+// Live Feed Sync (Pulls any future uploads from YouTube)
+async function syncChannelFeed(channelId) {
+  try {
+    const rss = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}&_t=${Date.now()}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status === 'ok' && data.items && data.items.length) {
+      const fresh = data.items.map(item => {
+        const id = (item.guid || '').replace('yt:video:', '') || 
+                   (item.link.match(/\/shorts\/([a-zA-Z0-9_-]{11})/) || [])[1];
+        return { id: id, title: item.title };
+      }).filter(i => i.id);
+
+      if (fresh.length > 0) {
+        const existing = new Set(window.appState.shortsPool.map(s => s.id));
+        const newOnes = fresh.filter(i => !existing.has(i.id));
+        if (newOnes.length > 0) {
+          window.appState.shortsPool = [...newOnes, ...window.appState.shortsPool];
+          updateChannelInfo();
+          showToast(`✨ Added ${newOnes.length} newly uploaded short(s)!`);
+        }
+      }
+    }
+  } catch (e) {
+    // Silent fallback
+  }
 }
 
-function updateHeaderStats() {
-  elements.activeChannelName.textContent = state.currentChannel;
-  elements.poolCount.textContent = `${state.shortsPool.length} Shorts in library`;
+function updateChannelInfo() {
+  const countEl = document.getElementById('shorts-pool-count');
+  if (countEl) countEl.textContent = window.appState.shortsPool.length;
 }
 
-function extractVideoId(url) {
-  if (!url) return null;
-  const m = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/) || 
-            url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) || 
-            url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-  if (m) return m[1];
-  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
-  return null;
-}
-
-function getVolumeIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-  </svg>`;
-}
-
-function getMuteIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-    <line x1="23" y1="9" x2="17" y2="15"></line>
-    <line x1="17" y1="9" x2="23" y2="15"></line>
-  </svg>`;
-}
-
-function escapeHTML(str) {
+function escapeHtml(str) {
   return (str || '').replace(/[&<>'"]/g, 
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
 
 function showToast(msg) {
-  elements.toast.textContent = msg;
-  elements.toast.classList.remove('hidden');
-  clearTimeout(elements.toastTimeout);
-  elements.toastTimeout = setTimeout(() => {
-    elements.toast.classList.add('hidden');
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.remove('hidden');
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => {
+    toast.classList.add('hidden');
   }, 2200);
 }
 
-// Event Listeners
-function setupEvents() {
-  // Brand Click -> Reset to BLVCKTORQUE
-  elements.brandHome.addEventListener('click', () => {
-    loadChannel(DEFAULT_CHANNEL_ID);
-  });
-
-  // Channel Form
-  elements.channelForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    handleInput(elements.channelInput.value);
-  });
-
-  // Grid Pills (1, 4, 8, 12, 16, 24)
-  elements.gridPills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      const count = parseInt(pill.dataset.count, 10);
-      setPlayerCount(count);
-    });
-  });
-
-  // Shuffle All
-  elements.randomizeAllBtn.addEventListener('click', randomizeAll);
-
-  // Sync Feed
-  elements.syncBtn.addEventListener('click', () => {
-    syncLiveFeed(state.currentChannelId);
-  });
-
-  // Audio Info
-  elements.audioInfoBtn.addEventListener('click', () => {
-    showToast('Click any video or its speaker icon to unmute sound!');
-  });
-
-  // Preset Chips
-  elements.presetChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      loadChannel(chip.dataset.channel);
-    });
-  });
-
-  // Keyboard shortcut: Press R to Randomize All, Space to toggle audio
-  window.addEventListener('keydown', (e) => {
-    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-    if (e.key.toLowerCase() === 'r') {
-      randomizeAll();
-    }
-  });
-}
-
-// Kickoff
-setupEvents();
-renderMatrix();
-syncLiveFeed(DEFAULT_CHANNEL_ID);
+// Background sync for BLVCKTORQUE
+syncChannelFeed(DEFAULT_CHANNEL_ID);
