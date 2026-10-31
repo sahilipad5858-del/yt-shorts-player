@@ -1,9 +1,34 @@
 /**
- * ShortsStream — Minimalist YouTube Shorts Channel Player
+ * ShortsStream — YouTube Shorts Player
+ * Configured with BLVCKTORQUE (UCc3WaSgyMJ4q1orDuTla1BA) live sync support
  */
 
-// Presets for instant zero-config playback
+const DEFAULT_CHANNEL_ID = 'UCc3WaSgyMJ4q1orDuTla1BA';
+const DEFAULT_CHANNEL_NAME = 'BLVCKTORQUE';
+
+// Curated Channel Presets (Includes full BLVCKTORQUE library for instant zero-latency start)
 const PRESET_CHANNELS = {
+  [DEFAULT_CHANNEL_ID]: {
+    name: 'BLVCKTORQUE',
+    channelId: DEFAULT_CHANNEL_ID,
+    shorts: [
+      { id: '0X9pWHijTCw', title: 'Red Bull Athletes In GTA 5 Be Like... 🪂🔥 Extreme Stunts Compilation' },
+      { id: 'f9gk9xUtos8', title: 'Top Gun\'s "Best" Pilot Crashes In GTA 5! ✈️💀 Epic Fighter Jet Fail' },
+      { id: 'bosSZd6gQNI', title: 'Fortnite Building In GTA 5 Is Actually INSANE! ⛏️🧱 Battle Royale Crossover' },
+      { id: 'sq6HhyzE8rg', title: '"Be Safe Out There" ...GTA 5 Public Lobbies: 💥💀 Pure Los Santos Chaos' },
+      { id: 'nLJpeCKbGEU', title: 'You Can STILL Do This Glitch In GTA 5 In 2025! 🚀😱 Super Launch Bug' },
+      { id: 'yW7PzDevJwg', title: 'The GTA 5 Cave Diver Memes NEED To Stop! 😂🤿 Claustrophobic Tunnel' },
+      { id: 'raLXHV__l2o', title: 'Can A BMX Bike Conquer The Hardest Turn In GTA 5?! 🚲🔥 Insane Bicycle Stunt' },
+      { id: '4xK9v6xZgbg', title: 'The FASTEST Way To Beat The Hardest Turn In GTA 5! ⚡🏎️ Speedrun Stunt' },
+      { id: '7iYmNFKMoJ0', title: 'Cave Divers For Literally No Reason In GTA 5! 🤿🌊 Claustrophobia Meme' },
+      { id: '4K7QtmljHl8', title: 'Why Did He Do That In GTA 5?! 🤦‍♂️💥 Heist Teammate Fail' },
+      { id: 'gzb8rMK8GTE', title: 'Pizza Delivery Boy VS The Hardest Turn In GTA 5! 🍕🛵 Impossible Run' },
+      { id: 'NtNhPmXJJJ0', title: 'I Hope GTA 6 DOESN\'T Have These Physics! 💀🚀 Broken GTA 5 Physics Glitch' },
+      { id: 'Ebto1Dwbuw8', title: 'This GTA 5 Clip Is Straight Out Of A James Bond Movie! 🕵️‍♂️💥 007 Car Chase' },
+      { id: '2BWmnXi-5gA', title: 'Just A Casual Drift In GTA Online... Wait For It! 🚗💨 Drift Fail' },
+      { id: 'GMAtt42y_cw', title: 'All POVs At The Hardest Turn In GTA 5! 🎥🏎️ Multi-Angle Stunt Showcase' }
+    ]
+  },
   '@veritasium': {
     name: 'Veritasium',
     shorts: [
@@ -32,14 +57,6 @@ const PRESET_CHANNELS = {
       { id: 'M6U7j9lQ-tE', title: 'Painting Comes To Life' }
     ]
   },
-  '@TEDx': {
-    name: 'TEDx Talks',
-    shorts: [
-      { id: '5qap5aO4i9A', title: 'How To Stop Overthinking in 3 Steps' },
-      { id: 'fA8xQ6w1L8Y', title: 'The Power of Deep Work & Focus' },
-      { id: 'v8s3H_v7Z9o', title: 'The Secret to Building Lasting Habits' }
-    ]
-  },
   '@MrBeast': {
     name: 'MrBeast',
     shorts: [
@@ -53,13 +70,15 @@ const PRESET_CHANNELS = {
 
 // Application State
 const state = {
-  currentChannel: 'Veritasium',
+  currentChannel: DEFAULT_CHANNEL_NAME,
+  currentChannelId: DEFAULT_CHANNEL_ID,
   shortsQueue: [],
   currentIndex: 0,
   isPlaying: false,
   isMuted: false,
   autoAdvance: true,
   loopCurrent: false,
+  autoSync: true,
   ytPlayer: null,
   isPlayerReady: false,
   apiKey: localStorage.getItem('yt_shorts_api_key') || ''
@@ -67,9 +86,12 @@ const state = {
 
 // DOM Elements
 const elements = {
+  brandHome: document.getElementById('brand-home'),
   channelForm: document.getElementById('channel-form'),
   channelInput: document.getElementById('channel-input'),
   loadBtn: document.getElementById('load-btn'),
+  syncBtn: document.getElementById('sync-btn'),
+  syncQueueBtn: document.getElementById('sync-queue-btn'),
   shortsCard: document.getElementById('shorts-card'),
   playerLoader: document.getElementById('player-loader'),
   loaderStatus: document.getElementById('loader-status'),
@@ -92,6 +114,7 @@ const elements = {
   queueDrawer: document.getElementById('queue-drawer'),
   queueList: document.getElementById('queue-list'),
   queueCount: document.getElementById('queue-count'),
+  queueHeaderTitle: document.getElementById('queue-header-title'),
   shuffleBtn: document.getElementById('shuffle-btn'),
   clearQueueBtn: document.getElementById('clear-queue-btn'),
   presetChips: document.querySelectorAll('.chip'),
@@ -100,6 +123,7 @@ const elements = {
   closeSettingsBtn: document.getElementById('close-settings-btn'),
   autoAdvanceToggle: document.getElementById('auto-advance-toggle'),
   loopToggle: document.getElementById('loop-toggle'),
+  autoSyncToggle: document.getElementById('auto-sync-toggle'),
   apiKeyInput: document.getElementById('yt-api-key'),
   saveApiKeyBtn: document.getElementById('save-api-key-btn'),
   toast: document.getElementById('toast')
@@ -137,8 +161,8 @@ function initPlayer() {
 
 function onPlayerReady(event) {
   state.isPlayerReady = true;
-  // Load initial preset channel
-  loadPresetChannel('@veritasium');
+  // Load BLVCKTORQUE channel by default
+  loadDefaultChannel();
 }
 
 function onPlayerStateChange(event) {
@@ -159,22 +183,20 @@ function onPlayerStateChange(event) {
       state.isPlaying = false;
       updatePlayPauseUI();
     }
-  } else if (event.data === YT.PlayerState.BUFFERING) {
-    // Buffering
   }
 }
 
 function onPlayerError(event) {
   console.warn('YouTube Player Error:', event.data);
-  showToast('Video restricted or unavailable. Advancing...');
+  showToast('Short playback issue. Skipping to next...');
   setTimeout(() => {
     if (state.shortsQueue.length > 1) {
       playNext();
     }
-  }, 1200);
+  }, 1000);
 }
 
-// Controls Logic
+// Playback Logic
 function playVideoAtIndex(index) {
   if (!state.shortsQueue.length) return;
   if (index < 0) index = 0;
@@ -183,7 +205,7 @@ function playVideoAtIndex(index) {
   state.currentIndex = index;
   const currentShort = state.shortsQueue[index];
 
-  showLoader(`Loading short ${index + 1} of ${state.shortsQueue.length}...`);
+  showLoader(`Loading ${index + 1} of ${state.shortsQueue.length}...`);
 
   // Update UI Elements
   elements.videoTitle.textContent = currentShort.title || 'YouTube Short';
@@ -212,9 +234,9 @@ function playNext() {
   if (state.currentIndex < state.shortsQueue.length - 1) {
     playVideoAtIndex(state.currentIndex + 1);
   } else {
-    // Loop back to start if at the end
+    // Loop back to beginning
     playVideoAtIndex(0);
-    showToast('Replayed from the beginning');
+    showToast('Replaying from beginning');
   }
 }
 
@@ -222,7 +244,7 @@ function playPrev() {
   if (state.currentIndex > 0) {
     playVideoAtIndex(state.currentIndex - 1);
   } else {
-    showToast('Already at the first short');
+    showToast('Already at first short');
   }
 }
 
@@ -277,6 +299,7 @@ function hideLoader() {
 function renderQueue() {
   elements.queueList.innerHTML = '';
   elements.queueCount.textContent = state.shortsQueue.length;
+  elements.queueHeaderTitle.textContent = `${state.currentChannel} Shorts`;
 
   state.shortsQueue.forEach((short, idx) => {
     const item = document.createElement('div');
@@ -313,30 +336,139 @@ function updateQueueActiveItem() {
   });
 }
 
-// URL Parsing and Loading
+// Default Channel Loader (BLVCKTORQUE)
+function loadDefaultChannel() {
+  state.currentChannel = DEFAULT_CHANNEL_NAME;
+  state.currentChannelId = DEFAULT_CHANNEL_ID;
+
+  // 1. Instantly populate pre-cached shorts for zero waiting time
+  const preset = PRESET_CHANNELS[DEFAULT_CHANNEL_ID];
+  state.shortsQueue = preset.shorts.map(s => ({ ...s, channel: DEFAULT_CHANNEL_NAME }));
+  
+  elements.presetChips.forEach(chip => {
+    if (chip.dataset.channel === DEFAULT_CHANNEL_ID) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+
+  renderQueue();
+  playVideoAtIndex(0);
+
+  // 2. Fetch live RSS feed to check for any new uploads published in the future
+  syncChannelFeed(DEFAULT_CHANNEL_ID, true);
+}
+
+// Live Channel Feed Sync (Fetches new uploads dynamically)
+async function syncChannelFeed(channelId, isSilent = false) {
+  if (!channelId) channelId = state.currentChannelId || DEFAULT_CHANNEL_ID;
+
+  elements.syncBtn.classList.add('spinning');
+  if (!isSilent) showToast('Syncing latest uploads from YouTube...');
+
+  try {
+    let newItems = [];
+
+    // Attempt 1: Fetch through rss2json
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&_t=${Date.now()}`;
+    
+    try {
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      if (data.status === 'ok' && data.items && data.items.length) {
+        newItems = data.items.map(item => {
+          const videoId = extractVideoId(item.link) || (item.guid ? item.guid.replace('yt:video:', '') : '');
+          return {
+            id: videoId,
+            title: item.title,
+            channel: data.feed ? data.feed.title || state.currentChannel : state.currentChannel
+          };
+        }).filter(item => item.id);
+      }
+    } catch (e) {
+      console.warn('rss2json failed, trying allorigins fallback:', e);
+    }
+
+    // Attempt 2: Allorigins fallback if rss2json had issues
+    if (!newItems.length) {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+      const res = await fetch(proxyUrl);
+      const data = await res.json();
+      if (data.contents) {
+        const matches = [...data.contents.matchAll(/<yt:videoId>(.*?)<\/yt:videoId>[\s\S]*?<title>(.*?)<\/title>/g)];
+        newItems = matches.map(m => ({
+          id: m[1],
+          title: decodeHTMLEntities(m[2]),
+          channel: state.currentChannel
+        }));
+      }
+    }
+
+    // Merge new items with current queue, placing newest on top without duplicates
+    if (newItems.length > 0) {
+      const existingIds = new Set(state.shortsQueue.map(s => s.id));
+      const freshUploads = newItems.filter(item => !existingIds.has(item.id));
+
+      if (freshUploads.length > 0) {
+        state.shortsQueue = [...freshUploads, ...state.shortsQueue];
+        renderQueue();
+        showToast(`✨ Found ${freshUploads.length} new short(s) uploaded!`);
+      } else if (!isSilent) {
+        showToast('Feed is already up to date!');
+      }
+    }
+  } catch (err) {
+    console.error('Sync failed:', err);
+    if (!isSilent) showToast('Sync completed (cached queue ready)');
+  } finally {
+    elements.syncBtn.classList.remove('spinning');
+  }
+}
+
+// Input parsing (Channel URL, Studio URL, Handle, or Short link)
 async function handleChannelInput(inputStr) {
   inputStr = inputStr.trim();
   if (!inputStr) return;
 
   showLoader('Resolving channel & shorts...');
 
-  // 1. Check if user pasted a direct Short URL or standard Watch URL
+  // 1. Direct Short or Watch URL / Video ID
   const directVideoId = extractVideoId(inputStr);
-  if (directVideoId) {
+  if (directVideoId && !inputStr.includes('/channel/') && !inputStr.includes('studio.youtube.com')) {
     const customShort = {
       id: directVideoId,
       title: 'Direct Short / Video',
       channel: 'Custom Video'
     };
     state.shortsQueue = [customShort, ...state.shortsQueue];
-    state.currentChannel = 'Custom Queue';
     renderQueue();
     playVideoAtIndex(0);
     showToast('Short added to queue!');
     return;
   }
 
-  // 2. Normalize channel handle / name
+  // 2. Extract Channel ID if it's studio.youtube.com/channel/UC... or youtube.com/channel/UC...
+  const channelIdMatch = inputStr.match(/(UC[a-zA-Z0-9_-]{22})/);
+  if (channelIdMatch) {
+    const channelId = channelIdMatch[1];
+    state.currentChannelId = channelId;
+    if (channelId === DEFAULT_CHANNEL_ID) {
+      loadDefaultChannel();
+    } else {
+      state.currentChannel = 'YouTube Channel';
+      state.shortsQueue = [];
+      renderQueue();
+      await syncChannelFeed(channelId, false);
+      if (state.shortsQueue.length > 0) {
+        playVideoAtIndex(0);
+      }
+    }
+    return;
+  }
+
+  // 3. Normalize @handle or channel name
   let cleanHandle = inputStr;
   const handleMatch = inputStr.match(/(?:youtube\.com\/|@)(@?[\w.-]+)/i);
   if (handleMatch) {
@@ -345,29 +477,28 @@ async function handleChannelInput(inputStr) {
     cleanHandle = '@' + cleanHandle;
   }
 
-  // 3. Check preset cache first
-  const normalizedKey = Object.keys(PRESET_CHANNELS).find(
+  // Check preset channels
+  const presetKey = Object.keys(PRESET_CHANNELS).find(
     k => k.toLowerCase() === cleanHandle.toLowerCase()
   );
 
-  if (normalizedKey) {
-    loadPresetChannel(normalizedKey);
+  if (presetKey) {
+    loadPresetChannel(presetKey);
     return;
   }
 
-  // 4. If custom channel and user has an API Key
+  // API Key fetch if available
   if (state.apiKey) {
     const fetched = await fetchViaYouTubeAPI(cleanHandle);
     if (fetched) return;
   }
 
-  // 5. Try live public RSS feed scraper
+  // Fallback RSS scraper
   const rssFetched = await fetchViaPublicRSS(cleanHandle);
   if (rssFetched) return;
 
-  // Fallback if not directly resolvable via CORS
   hideLoader();
-  showToast(`Could not auto-fetch ${cleanHandle}. Paste direct shorts links or add YouTube API key!`);
+  showToast(`Could not load ${cleanHandle}. Try pasting channel ID or a short link!`);
 }
 
 function loadPresetChannel(handleKey) {
@@ -375,12 +506,9 @@ function loadPresetChannel(handleKey) {
   if (!preset) return;
 
   state.currentChannel = preset.name;
-  state.shortsQueue = preset.shorts.map(s => ({
-    ...s,
-    channel: preset.name
-  }));
+  state.currentChannelId = preset.channelId || null;
+  state.shortsQueue = preset.shorts.map(s => ({ ...s, channel: preset.name }));
 
-  // Update active pill styling
   elements.presetChips.forEach(chip => {
     if (chip.dataset.channel.toLowerCase() === handleKey.toLowerCase()) {
       chip.classList.add('active');
@@ -391,9 +519,13 @@ function loadPresetChannel(handleKey) {
 
   renderQueue();
   playVideoAtIndex(0);
+
+  if (preset.channelId) {
+    syncChannelFeed(preset.channelId, true);
+  }
 }
 
-// Fetch YouTube Data API v3 (when user supplies optional API key in settings)
+// Fetch YouTube Data API v3 (Optional)
 async function fetchViaYouTubeAPI(handleOrId) {
   try {
     showLoader('Querying YouTube API...');
@@ -401,20 +533,18 @@ async function fetchViaYouTubeAPI(handleOrId) {
     const channelRes = await fetch(searchChannelUrl);
     const channelData = await channelRes.json();
 
-    if (!channelData.items || !channelData.items.length) {
-      return false;
-    }
+    if (!channelData.items || !channelData.items.length) return false;
 
     const channelId = channelData.items[0].id.channelId;
     const channelTitle = channelData.items[0].snippet.title;
 
-    // Fetch shorts (duration=short)
-    const videosUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&videoDuration=short&order=date&maxResults=20&key=${state.apiKey}`;
+    const videosUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&videoDuration=short&order=date&maxResults=25&key=${state.apiKey}`;
     const videosRes = await fetch(videosUrl);
     const videosData = await videosRes.json();
 
     if (videosData.items && videosData.items.length) {
       state.currentChannel = channelTitle;
+      state.currentChannelId = channelId;
       state.shortsQueue = videosData.items.map(item => ({
         id: item.id.videoId,
         title: item.snippet.title,
@@ -431,41 +561,39 @@ async function fetchViaYouTubeAPI(handleOrId) {
   return false;
 }
 
-// Fetch using public RSS-to-JSON proxies
+// Fallback HTML Scraper via proxy
 async function fetchViaPublicRSS(handleOrId) {
   try {
     showLoader('Discovering channel feed...');
-    // Attempt with rss2json
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.youtube.com/${handleOrId}/shorts`)}`;
     const res = await fetch(proxyUrl);
     const data = await res.json();
 
     if (data.contents) {
-      // Extract video IDs from the channel HTML
       const matches = [...data.contents.matchAll(/\/shorts\/([a-zA-Z0-9_-]{11})/g)];
       const uniqueIds = Array.from(new Set(matches.map(m => m[1])));
 
       if (uniqueIds.length > 0) {
         state.currentChannel = handleOrId;
-        state.shortsQueue = uniqueIds.slice(0, 15).map((id, i) => ({
+        state.shortsQueue = uniqueIds.slice(0, 20).map((id, i) => ({
           id: id,
           title: `Short #${i + 1}`,
           channel: handleOrId
         }));
         renderQueue();
         playVideoAtIndex(0);
-        showToast(`Loaded ${state.shortsQueue.length} shorts for ${handleOrId}!`);
+        showToast(`Loaded ${state.shortsQueue.length} shorts for ${handleOrId}`);
         return true;
       }
     }
   } catch (e) {
-    console.warn('CORS / RSS fallback failed:', e);
+    console.warn('Public RSS fallback failed:', e);
   }
   return false;
 }
 
 function extractVideoId(url) {
-  // Matches /shorts/ID, /watch?v=ID, youtu.be/ID
+  if (!url) return null;
   const shortsRegex = /\/shorts\/([a-zA-Z0-9_-]{11})/;
   const watchRegex = /[?&]v=([a-zA-Z0-9_-]{11})/;
   const shareRegex = /youtu\.be\/([a-zA-Z0-9_-]{11})/;
@@ -475,6 +603,12 @@ function extractVideoId(url) {
   if (m) return m[1];
   if (rawIdRegex.test(url)) return url;
   return null;
+}
+
+function decodeHTMLEntities(text) {
+  const el = document.createElement('textarea');
+  el.innerHTML = text;
+  return el.value;
 }
 
 function escapeHTML(str) {
@@ -494,21 +628,39 @@ function showToast(msg) {
 
 // Event Listeners
 function setupEventListeners() {
-  // Channel form submit
+  // Brand Home click -> Reset to BLVCKTORQUE
+  elements.brandHome.addEventListener('click', () => {
+    loadDefaultChannel();
+    showToast('Loaded BLVCKTORQUE');
+  });
+
+  // Channel Form Submit
   elements.channelForm.addEventListener('submit', (e) => {
     e.preventDefault();
     handleChannelInput(elements.channelInput.value);
   });
 
-  // Preset chips
+  // Manual Sync Button
+  elements.syncBtn.addEventListener('click', () => {
+    syncChannelFeed(state.currentChannelId, false);
+  });
+  elements.syncQueueBtn.addEventListener('click', () => {
+    syncChannelFeed(state.currentChannelId, false);
+  });
+
+  // Preset Chips
   elements.presetChips.forEach(chip => {
     chip.addEventListener('click', () => {
       const channel = chip.dataset.channel;
-      loadPresetChannel(channel);
+      if (channel === DEFAULT_CHANNEL_ID) {
+        loadDefaultChannel();
+      } else {
+        loadPresetChannel(channel);
+      }
     });
   });
 
-  // Navigation Buttons
+  // Controls
   elements.nextBtn.addEventListener('click', playNext);
   elements.prevBtn.addEventListener('click', playPrev);
   elements.playPauseBtn.addEventListener('click', togglePlayPause);
@@ -520,17 +672,16 @@ function setupEventListeners() {
     const current = state.shortsQueue[state.currentIndex];
     const url = `https://www.youtube.com/shorts/${current.id}`;
     navigator.clipboard.writeText(url).then(() => {
-      showToast('Copied short URL to clipboard!');
+      showToast('Copied short link to clipboard!');
     }).catch(() => {
       showToast('Failed to copy link');
     });
   });
 
-  // Queue Drawer Toggle
+  // Queue Drawer
   elements.toggleQueueBtn.addEventListener('click', () => {
     elements.queueDrawer.classList.toggle('open');
   });
-
   elements.closeQueueBtn.addEventListener('click', () => {
     elements.queueDrawer.classList.remove('open');
   });
@@ -540,13 +691,10 @@ function setupEventListeners() {
     if (state.shortsQueue.length <= 1) return;
     const current = state.shortsQueue[state.currentIndex];
     const rest = state.shortsQueue.filter((_, i) => i !== state.currentIndex);
-    
-    // Fisher-Yates shuffle
     for (let i = rest.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [rest[i], rest[j]] = [rest[j], rest[i]];
     }
-
     state.shortsQueue = [current, ...rest];
     state.currentIndex = 0;
     renderQueue();
@@ -569,9 +717,8 @@ function setupEventListeners() {
     }
   });
 
-  // Keyboard Shortcuts (Arrow Up/Down, J/K, Space, M)
+  // Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
-    // Avoid capturing inputs when typing in search or API key field
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
     if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'j') {
@@ -589,18 +736,16 @@ function setupEventListeners() {
     }
   });
 
-  // Mouse Wheel Debounced Scroll over player
+  // Mouse Wheel Debounce
   let wheelTimeout = null;
   elements.shortsCard.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (wheelTimeout) return;
-    
     if (e.deltaY > 20) {
       playNext();
     } else if (e.deltaY < -20) {
       playPrev();
     }
-    
     wheelTimeout = setTimeout(() => {
       wheelTimeout = null;
     }, 600);
@@ -617,25 +762,21 @@ function setupEventListeners() {
     const diff = touchStartY - touchEndY;
     if (Math.abs(diff) > 45) {
       if (diff > 0) {
-        // Swiped up -> Next
         playNext();
       } else {
-        // Swiped down -> Prev
         playPrev();
       }
     }
   }, { passive: true });
 
-  // Settings Modal
+  // Settings
   elements.settingsBtn.addEventListener('click', () => {
     elements.settingsModal.classList.remove('hidden');
     if (state.apiKey) elements.apiKeyInput.value = state.apiKey;
   });
-
   elements.closeSettingsBtn.addEventListener('click', () => {
     elements.settingsModal.classList.add('hidden');
   });
-
   elements.settingsModal.addEventListener('click', (e) => {
     if (e.target === elements.settingsModal) {
       elements.settingsModal.classList.add('hidden');
@@ -658,6 +799,10 @@ function setupEventListeners() {
     }
   });
 
+  elements.autoSyncToggle.addEventListener('change', (e) => {
+    state.autoSync = e.target.checked;
+  });
+
   elements.saveApiKeyBtn.addEventListener('click', () => {
     const key = elements.apiKeyInput.value.trim();
     state.apiKey = key;
@@ -665,7 +810,14 @@ function setupEventListeners() {
     showToast('API Key saved!');
     elements.settingsModal.classList.add('hidden');
   });
+
+  // Background Auto-sync check every 90 seconds for future uploads
+  setInterval(() => {
+    if (state.autoSync && state.currentChannelId === DEFAULT_CHANNEL_ID) {
+      syncChannelFeed(DEFAULT_CHANNEL_ID, true);
+    }
+  }, 90000);
 }
 
-// Kickoff
+// Start
 setupEventListeners();

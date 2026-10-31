@@ -13,6 +13,7 @@
   --accent-red: #ef4444;
   --accent-red-hover: #dc2626;
   --accent-glow: rgba(239, 68, 68, 0.25);
+  --accent-emerald: #10b981;
   
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -206,6 +207,10 @@ body {
   height: 18px;
 }
 
+.icon-btn.spinning svg {
+  animation: spin 0.8s linear infinite;
+}
+
 .badge {
   position: absolute;
   top: -4px;
@@ -269,6 +274,19 @@ body {
   background: var(--accent-red);
   color: #fff;
   border-color: var(--accent-red);
+}
+
+.featured-chip {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2));
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fff;
+  font-weight: 600;
+}
+
+.featured-chip.active {
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  border-color: transparent;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
 }
 
 /* ==================== Main Stage ==================== */
@@ -355,7 +373,7 @@ body {
   left: 0;
   right: 0;
   padding: 24px 16px 14px 16px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.6) 65%, transparent 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.94) 0%, rgba(0, 0, 0, 0.65) 65%, transparent 100%);
   pointer-events: none;
   z-index: 10;
   display: flex;
@@ -382,8 +400,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
-  font-weight: bold;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .channel-name {
@@ -523,13 +541,44 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.drawer-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .drawer-header h3 {
   font-size: 0.95rem;
   font-weight: 600;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--accent-emerald);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent-emerald);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-emerald);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 .icon-btn-sm {

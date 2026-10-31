@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shorts Minimal — YouTube Shorts Channel Player</title>
+  <title>BLVCKTORQUE — YouTube Shorts Player</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
   <div class="app-container">
     <!-- Top Bar: Channel input & minimal header -->
     <header class="top-nav">
-      <div class="brand">
+      <div class="brand" id="brand-home" title="Reset to BLVCKTORQUE">
         <div class="brand-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -31,7 +31,7 @@
           <input 
             type="text" 
             id="channel-input" 
-            placeholder="Paste channel URL, @handle, or shorts link..." 
+            placeholder="Channel link (studio.youtube.com/... or @handle), ID, or Short URL..." 
             autocomplete="off" 
             spellcheck="false"
           />
@@ -46,6 +46,14 @@
       </form>
 
       <div class="top-actions">
+        <button id="sync-btn" class="icon-btn" title="Sync / Fetch Latest Uploads" aria-label="Sync Uploads">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+
         <button id="toggle-queue-btn" class="icon-btn" title="Toggle Shorts Queue" aria-label="Toggle Shorts Queue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -69,11 +77,11 @@
 
     <!-- Quick Channel Suggestion Chips -->
     <div class="preset-channels" id="preset-channels">
-      <span class="preset-label">Trending:</span>
+      <span class="preset-label">Channels:</span>
+      <button class="chip active featured-chip" data-channel="UCc3WaSgyMJ4q1orDuTla1BA">🔥 BLVCKTORQUE (My Channel)</button>
       <button class="chip" data-channel="@veritasium">Veritasium</button>
       <button class="chip" data-channel="@mkbhd">MKBHD</button>
       <button class="chip" data-channel="@ZachKing">Zach King</button>
-      <button class="chip" data-channel="@TEDx">TEDx</button>
       <button class="chip" data-channel="@MrBeast">MrBeast</button>
     </div>
 
@@ -96,8 +104,8 @@
           <!-- Overlay video info: Minimal bottom overlay -->
           <div class="video-overlay" id="video-overlay">
             <div class="channel-info-row">
-              <span class="channel-avatar" id="channel-avatar-icon">▶</span>
-              <span class="channel-name" id="current-channel-name">Channel Name</span>
+              <span class="channel-avatar" id="channel-avatar-icon">B</span>
+              <span class="channel-name" id="current-channel-name">BLVCKTORQUE</span>
               <a href="#" target="_blank" id="yt-external-link" class="external-link" title="Open on YouTube">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -106,9 +114,9 @@
                 </svg>
               </a>
             </div>
-            <h2 class="video-title" id="current-video-title">Select or enter a channel link above</h2>
+            <h2 class="video-title" id="current-video-title">Red Bull Athletes In GTA 5 Be Like... 🪂🔥 Extreme Stunts Compilation</h2>
             <div class="video-meta-row">
-              <span class="counter-pill" id="counter-pill">0 / 0</span>
+              <span class="counter-pill" id="counter-pill">1 / 15</span>
               <span class="keyboard-tip">↑ / ↓ or scroll to flip</span>
             </div>
           </div>
@@ -162,12 +170,23 @@
       <!-- Slide-in Queue Sidebar -->
       <aside class="queue-drawer" id="queue-drawer">
         <div class="drawer-header">
-          <h3>Channel Shorts Queue</h3>
+          <div class="drawer-title-group">
+            <h3 id="queue-header-title">BLVCKTORQUE Shorts</h3>
+            <span class="live-indicator"><span class="dot"></span> Live Feed</span>
+          </div>
           <button id="close-queue-btn" class="icon-btn-sm" aria-label="Close Queue">✕</button>
         </div>
         <div class="queue-actions">
+          <button id="sync-queue-btn" class="sub-btn">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Sync Feed
+          </button>
           <button id="shuffle-btn" class="sub-btn">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="16 3 21 3 21 8"></polyline>
               <line x1="4" y1="20" x2="21" y2="3"></line>
               <polyline points="21 16 21 21 16 21"></polyline>
@@ -210,17 +229,17 @@
 
           <div class="setting-item">
             <div class="setting-text">
-              <label for="high-quality-toggle">Fit full screen (vertical mode)</label>
-              <span class="setting-desc">Optimizes frame scaling</span>
+              <label for="auto-sync-toggle">Auto-check for new uploads</label>
+              <span class="setting-desc">Periodically syncs your channel in background</span>
             </div>
-            <input type="checkbox" id="high-quality-toggle" checked class="switch">
+            <input type="checkbox" id="auto-sync-toggle" checked class="switch">
           </div>
 
           <div class="setting-divider"></div>
 
           <div class="api-key-box">
             <label for="yt-api-key">YouTube Data API Key (Optional)</label>
-            <p class="api-hint">Allows fetching up to 50 shorts directly per channel without CORS proxies. Works seamlessly with or without an API key.</p>
+            <p class="api-hint">Allows fetching up to 50 shorts directly without public proxies. The app also works automatically without a key using YouTube's real-time feeds.</p>
             <input type="password" id="yt-api-key" placeholder="AIzaSy..." autocomplete="off">
             <button id="save-api-key-btn" class="sub-btn">Save Key</button>
           </div>
